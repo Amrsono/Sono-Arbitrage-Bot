@@ -680,8 +680,8 @@
             item.style.borderLeftColor = '#10b981';
             item.innerHTML = `
                 <div style="font-size: 0.85rem;">
-                    <strong>Buy ${opp.buyChain.toUpperCase()}</strong> @ $${opp.buyPrice.toFixed(2)}
-                    → <strong>Sell ${opp.sellChain.toUpperCase()}</strong> @ $${opp.sellPrice.toFixed(2)}
+                    <strong>Buy on ${opp.buyChain.toUpperCase()}</strong> @ $${opp.buyPrice.toFixed(2)}
+                    → <strong>Sell on ${opp.sellChain.toUpperCase()}</strong> @ $${opp.sellPrice.toFixed(2)}
                     <span class="sentiment-badge sentiment-positive">+${opp.profitPercentage.toFixed(2)}%</span>
                 </div>
                 <div class="timestamp">${new Date(opp.timestamp).toLocaleString()}</div>
