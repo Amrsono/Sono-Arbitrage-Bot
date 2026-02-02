@@ -9,8 +9,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3001
       - key: DRY_RUN
         value: true
       - key: SOLANA_RPC_URL
