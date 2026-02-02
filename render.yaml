@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: sono-arbitrage-bot
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/dashboard/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DRY_RUN
+        value: true
+      - key: SOLANA_RPC_URL
+        value: https://api.mainnet-beta.solana.com
+      - key: ETHEREUM_RPC_URL
+        value: https://eth.llamarpc.com
