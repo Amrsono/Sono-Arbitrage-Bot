@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sono Arbitrage Bot - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f23;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated gradient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            z-index: -2;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float linear infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Geometric shapes */
+        .shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            animation: rotate 20s linear infinite;
+        }
+
+        .shape.circle {
+            border-radius: 50%;
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            }
+
+            to {
+                text-shadow: 0 0 20px rgba(255, 255, 255, 0.5),
+                    0 0 30px rgba(102, 126, 234, 0.4);
+            }
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 10px 5px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .status-badge:hover {
+            transform: scale(1.05);
+        }
+
+        .status-running {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .status-stopped {
+            background: #ef4444;
+        }
+
+        .status-dry-run {
+            background: #f59e0b;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 48px 0 rgba(31, 38, 135, 0.5);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card h2 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            font-size: 1.5rem;
+            animation: bounce 2s ease infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .price-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 15px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            animation: priceUpdate 0.5s ease;
+        }
+
+        @keyframes priceUpdate {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+                color: #10b981;
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .price-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .price-change {
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        .positive {
+            color: #10b981;
+        }
+
+        .negative {
+            color: #ef4444;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+            padding-left: 10px;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            opacity: 0.8;
+        }
+
+        .stat-value {
+            font-weight: bold;
+        }
+
+        .opportunity-list,
+        .trade-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .opportunity-item,
+        .trade-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #10b981;
+            animation: slideInRight 0.5s ease;
+            transition: all 0.3s ease;
+        }
+
+        .opportunity-item:hover,
+        .trade-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .trade-item {
+            border-left-color: #3b82f6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.6;
+            font-style: italic;
+        }
+
+        .connection-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 1s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .connected {
+            background: rgba(16, 185, 129, 0.9);
+        }
+
+        .disconnected {
+            background: rgba(239, 68, 68, 0.9);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: white;
+            animation: pulse 2s infinite;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .timestamp {
+            font-size: 0.85rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .profit-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-left: 10px;
+            animation: tada 1s ease;
+        }
+
+        @keyframes tada {
+            0% {
+                transform: scale(1);
+            }
+
+            10%,
+            20% {
+                transform: scale(0.9) rotate(-3deg);
+            }
+
+            30%,
+            50%,
+            70%,
+            90% {
+                transform: scale(1.1) rotate(3deg);
+            }
+
+            40%,
+            60%,
+            80% {
+                transform: scale(1.1) rotate(-3deg);
+            }
+
+            100% {
+                transform: scale(1) rotate(0);
+            }
+        }
+
+        .profit-positive {
+            background: #10b981;
+        }
+
+        .profit-negative {
+            background: #ef4444;
+        }
+
+        .chain-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 0 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Animated particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Geometric shapes -->
+    <div class="shapes">
+        <div class="shape circle" style="width: 200px; height: 200px; top: 10%; left: 10%;"></div>
+        <div class="shape" style="width: 150px; height: 150px; top: 60%; right: 15%; transform: rotate(45deg);"></div>
+        <div class="shape circle" style="width: 100px; height: 100px; bottom: 20%; left: 50%;"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>🤖 Sono Arbitrage Bot</h1>
+            <p class="subtitle">Multi-Agent Cross-Chain Trading System</p>
+            <div>
+                <span id="bot-status" class="status-badge status-stopped">● STOPPED</span>
+                <span class="status-badge status-dry-run">🔒 DRY RUN MODE</span>
+            </div>
+        </header>
+
+        <div class="grid">
+            <!-- Solana Price Card -->
+            <div class="card">
+                <h2><span class="icon">⚡</span> Solana (SOL)</h2>
+                <div class="price-label">Current Price</div>
+                <div class="price-display" id="sol-price">--</div>
+                <div class="price-label">Source: <span id="sol-source">Jupiter</span></div>
+                <div class="timestamp" id="sol-timestamp">Waiting for data...</div>
+            </div>
+
+            <!-- Ethereum Price Card -->
+            <div class="card">
+                <h2><span class="icon">💎</span> Ethereum (ETH)</h2>
+                <div class="price-label">Current Price</div>
+                <div class="price-display" id="eth-price">--</div>
+                <div class="price-label">Source: <span id="eth-source">Uniswap V3</span></div>
+                <div class="timestamp" id="eth-timestamp">Waiting for data...</div>
+            </div>
+
+            <!-- Stats Card -->
+            <div class="card">
+                <h2><span class="icon">📊</span> Statistics</h2>
+                <div class="stat-row">
+                    <span class="stat-label">Opportunities Found</span>
+                    <span class="stat-value" id="stat-opportunities">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Trades Executed</span>
+                    <span class="stat-value" id="stat-trades">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Total Profit</span>
+                    <span class="stat-value positive" id="stat-profit">$0.00</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Uptime</span>
+                    <span class="stat-value" id="stat-uptime">0m</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- Arbitrage Opportunities -->
+            <div class="card">
+                <h2><span class="icon">🎯</span> Arbitrage Opportunities</h2>
+                <div class="opportunity-list" id="opportunities">
+                    <div class="empty-state">Scanning for opportunities...</div>
+                </div>
+            </div>
+
+            <!-- Trade History -->
+            <div class="card">
+                <h2><span class="icon">💰</span> Recent Trades</h2>
+                <div class="trade-list" id="trades">
+                    <div class="empty-state">No trades executed yet</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="connection-status" class="connection-status disconnected">
+        <div class="status-dot"></div>
+        <span>Connecting...</span>
+    </div>
+
+    <script>
+        let ws;
+        let startTime = Date.now();
+
+        function connect() {
+            ws = new WebSocket('ws://localhost:3001');
+
+            ws.onopen = () => {
+                console.log('Connected to dashboard server');
+                updateConnectionStatus(true);
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+
+            ws.onclose = () => {
+                console.log('Disconnected from dashboard server');
+                updateConnectionStatus(false);
+                setTimeout(connect, 3000); // Reconnect after 3 seconds
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function handleMessage(message) {
+            const { type, chain, data } = message;
+
+            switch (type) {
+                case 'state':
+                    updateFullState(data);
+                    break;
+                case 'price':
+                    updatePrice(chain, data);
+                    break;
+                case 'opportunity':
+                    addOpportunity(data);
+                    break;
+                case 'trade':
+                    addTrade(data);
+                    break;
+                case 'status':
+                    updateBotStatus(data.running);
+                    break;
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connection-status');
+            statusEl.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+            statusEl.querySelector('span').textContent = connected ? 'Connected' : 'Disconnected';
+        }
+
+        function updateFullState(state) {
+            if (state.prices.solana) updatePrice('solana', state.prices.solana);
+            if (state.prices.ethereum) updatePrice('ethereum', state.prices.ethereum);
+
+            document.getElementById('stat-opportunities').textContent = state.stats.totalOpportunities;
+            document.getElementById('stat-trades').textContent = state.stats.totalTrades;
+            document.getElementById('stat-profit').textContent = '$' + state.stats.totalProfit.toFixed(2);
+
+            updateBotStatus(state.running);
+        }
+
+        function updatePrice(chain, data) {
+            if (chain === 'solana') {
+                document.getElementById('sol-price').textContent = '$' + data.price.toFixed(2);
+                document.getElementById('sol-source').textContent = data.dex || 'Jupiter';
+                document.getElementById('sol-timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
+            } else if (chain === 'ethereum') {
+                document.getElementById('eth-price').textContent = '$' + data.price.toFixed(2);
+                document.getElementById('eth-source').textContent = data.dex || 'Uniswap V3';
+                document.getElementById('eth-timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
+            }
+        }
+
+        function addOpportunity(opp) {
+            const list = document.getElementById('opportunities');
+
+            // Remove empty state if present
+            if (list.querySelector('.empty-state')) {
+                list.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'opportunity-item';
+            item.innerHTML = `
+                <div>
+                    <strong>Buy on <span class="chain-badge">${opp.buyChain.toUpperCase()}</span> @ $${opp.buyPrice.toFixed(2)}</strong>
+                    <strong>→ Sell on <span class="chain-badge">${opp.sellChain.toUpperCase()}</span> @ $${opp.sellPrice.toFixed(2)}</strong>
+                    <span class="profit-badge profit-positive">+${opp.profitPercentage.toFixed(2)}%</span>
+                </div>
+                <div class="timestamp">${new Date(opp.timestamp).toLocaleString()}</div>
+            `;
+
+            list.insertBefore(item, list.firstChild);
+
+            // Update stats
+            const currentCount = parseInt(document.getElementById('stat-opportunities').textContent);
+            document.getElementById('stat-opportunities').textContent = currentCount + 1;
+        }
+
+        function addTrade(trade) {
+            const list = document.getElementById('trades');
+
+            // Remove empty state if present
+            if (list.querySelector('.empty-state')) {
+                list.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'trade-item';
+            item.innerHTML = `
+                <div>
+                    <strong>${trade.buyChain.toUpperCase()} → ${trade.sellChain.toUpperCase()}</strong>
+                    <span class="profit-badge ${trade.netProfit > 0 ? 'profit-positive' : 'profit-negative'}">
+                        ${trade.netProfit > 0 ? '+' : ''}$${trade.netProfit.toFixed(2)}
+                    </span>
+                </div>
+                <div style="font-size: 0.9rem; margin-top: 5px;">
+                    Trade Size: $${trade.tradeSize.toFixed(2)} | Gas: $${trade.gasCosts.totalUsd.toFixed(2)}
+                </div>
+                <div class="timestamp">${new Date(trade.executionTime).toLocaleString()}</div>
+            `;
+
+            list.insertBefore(item, list.firstChild);
+
+            // Update stats
+            const currentCount = parseInt(document.getElementById('stat-trades').textContent);
+            const currentProfit = parseFloat(document.getElementById('stat-profit').textContent.replace('$', ''));
+            document.getElementById('stat-trades').textContent = currentCount + 1;
+            document.getElementById('stat-profit').textContent = '$' + (currentProfit + trade.netProfit).toFixed(2);
+        }
+
+        function updateBotStatus(running) {
+            const statusEl = document.getElementById('bot-status');
+            if (running) {
+                statusEl.textContent = '● RUNNING';
+                statusEl.className = 'status-badge status-running';
+            } else {
+                statusEl.textContent = '● STOPPED';
+                statusEl.className = 'status-badge status-stopped';
+            }
+        }
+
+        // Update uptime every second
+        setInterval(() => {
+            const uptimeMs = Date.now() - startTime;
+            const minutes = Math.floor(uptimeMs / 60000);
+            const seconds = Math.floor((uptimeMs % 60000) / 1000);
+            document.getElementById('stat-uptime').textContent = `${minutes}m ${seconds}s`;
+        }, 1000);
+
+        // Generate floating particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 30;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+
+                // Random size
+                const size = Math.random() * 5 + 2;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+
+                // Random starting position
+                particle.style.left = `${Math.random() * 100}%`;
+
+                // Random animation duration
+                const duration = Math.random() * 10 + 10;
+                particle.style.animationDuration = `${duration}s`;
+
+                // Random delay
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Create particles on load
+        createParticles();
+
+        // Connect on page load
+        connect();
+    </script>
+</body>
+
+</html>

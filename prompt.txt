@@ -1,0 +1,6 @@
+build me an app to orchestrate specialized agents that monitor decentralized exchanges (DEXs) across different blockchains. 
+The Build: Deploy one agent to monitor price discrepancies for the G token (Gravity) on Solana vs. Ethereum, while another agent handles the terminal commands to execute trades.
+my main target is to Generate profit from real-time price differences. And make sure Antigravity's terminal sandboxing ensures my private keys and execution scripts remain in a secure, confined environment. 
+
+now lets split the screen on the app and this app takes only half of it the other half of the app we will build a dashboard that tracks social sentiment for new crypto tokens. 
+The Build:  build a frontend in Flutter or React that pulls data from the X (Twitter) and Farcaster APIs. Use the built-in browser agent to navigate coin listing sites and verify that your sentiment analysis correctly identifies trending tokens.

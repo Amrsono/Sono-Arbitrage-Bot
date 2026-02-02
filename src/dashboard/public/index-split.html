@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sono Trading Suite - Dual Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f23;
+            color: #fff;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated gradient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            z-index: -2;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float linear infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Split screen container */
+        .split-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            height: 100vh;
+            gap: 2px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .panel {
+            overflow-y: auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .panel-left {
+            border-right: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Section headers */
+        .section-header {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .section-header h1 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            }
+
+            to {
+                text-shadow: 0 0 20px rgba(255, 255, 255, 0.5),
+                    0 0 30px rgba(102, 126, 234, 0.4);
+            }
+        }
+
+        .section-header .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            margin: 5px 3px;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .status-badge:hover {
+            transform: scale(1.05);
+        }
+
+        .status-running {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .status-stopped {
+            background: #ef4444;
+        }
+
+        .status-dry-run {
+            background: #f59e0b;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 48px 0 rgba(31, 38, 135, 0.5);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card h2 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon {
+            font-size: 1.2rem;
+        }
+
+        .price-display {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 10px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .price-label {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-value {
+            font-weight: bold;
+        }
+
+        /* Sentiment-specific styles */
+        .token-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #3b82f6;
+            animation: slideInRight 0.5s ease;
+            transition: all 0.3s ease;
+        }
+
+        .token-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .token-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .token-name {
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .token-symbol {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-left: 5px;
+        }
+
+        .sentiment-badge {
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .sentiment-positive {
+            background: #10b981;
+        }
+
+        .sentiment-negative {
+            background: #ef4444;
+        }
+
+        .sentiment-neutral {
+            background: #6b7280;
+        }
+
+        .token-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 0.75rem;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .trending-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 8px;
+            font-size: 0.7rem;
+            margin-left: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        .list-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .connection-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .connected {
+            background: rgba(16, 185, 129, 0.9);
+        }
+
+        .disconnected {
+            background: rgba(239, 68, 68, 0.9);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: white;
+            animation: pulse 2s infinite;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        .timestamp {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            margin-top: 5px;
+        }
+
+        .social-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 0.75rem;
+        }
+
+        .social-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .split-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .panel-left {
+                border-right: none;
+                border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Animated particles -->
+    <div class="particles" id="particles"></div>
+
+    <div class="split-container">
+        <!-- LEFT PANEL: Sono Arbitrage Bot -->
+        <div class="panel panel-left">
+            <div class="section-header">
+                <h1>🤖 Sono Arbitrage Bot</h1>
+                <p class="subtitle">Cross-Chain DEX Monitoring</p>
+                <div>
+                    <span id="bot-status" class="status-badge status-stopped">● STOPPED</span>
+                    <span class="status-badge status-dry-run">🔒 DRY RUN</span>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <h2><span class="icon">⚡</span> Solana</h2>
+                    <div class="price-label">SOL Price</div>
+                    <div class="price-display" id="sol-price">--</div>
+                    <div class="price-label">Source: <span id="sol-source">Jupiter</span></div>
+                    <div class="timestamp" id="sol-timestamp">Waiting...</div>
+                </div>
+
+                <div class="card">
+                    <h2><span class="icon">💎</span> Ethereum</h2>
+                    <div class="price-label">ETH Price</div>
+                    <div class="price-display" id="eth-price">--</div>
+                    <div class="price-label">Source: <span id="eth-source">Uniswap V3</span></div>
+                    <div class="timestamp" id="eth-timestamp">Waiting...</div>
+                </div>
+
+                <div class="card">
+                    <h2><span class="icon">📊</span> Stats</h2>
+                    <div class="stat-row">
+                        <span>Opportunities</span>
+                        <span class="stat-value" id="stat-opportunities">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Trades</span>
+                        <span class="stat-value" id="stat-trades">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Profit</span>
+                        <span class="stat-value" id="stat-profit">$0.00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Uptime</span>
+                        <span class="stat-value" id="stat-uptime">0m</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">🎯</span> Recent Opportunities</h2>
+                <div class="list-container" id="opportunities">
+                    <div class="empty-state">Scanning for opportunities...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Social Sentiment Tracker -->
+        <div class="panel panel-right">
+            <div class="section-header">
+                <h1>📊 Social Sentiment Tracker</h1>
+                <p class="subtitle">Real-time Crypto Buzz Monitor</p>
+                <div>
+                    <span class="status-badge status-running">● TRACKING</span>
+                    <span class="status-badge" style="background: #8b5cf6;">🐦 Twitter + Farcaster</span>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <h2><span class="icon">🔥</span> Trending</h2>
+                    <div class="stat-row">
+                        <span>Tokens Tracked</span>
+                        <span class="stat-value" id="tokens-tracked">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Mentions/Hour</span>
+                        <span class="stat-value" id="mentions-hour">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Positive Sentiment</span>
+                        <span class="stat-value" id="positive-pct">0%</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2><span class="icon">📈</span> Top Gainer</h2>
+                    <div class="price-label" id="top-gainer-name">--</div>
+                    <div class="price-display" style="font-size: 1.5rem;" id="top-gainer-score">--</div>
+                    <div class="price-label">Sentiment Score</div>
+                </div>
+
+                <div class="card">
+                    <h2><span class="icon">⚡</span> Hot Now</h2>
+                    <div class="price-label" id="hot-token-name">--</div>
+                    <div class="price-display" style="font-size: 1.5rem;" id="hot-token-mentions">--</div>
+                    <div class="price-label">Mentions (24h)</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">🚀</span> Trending Tokens</h2>
+                <div class="list-container" id="trending-tokens">
+                    <div class="empty-state">Analyzing social sentiment...</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">🔔</span> Latest Activity</h2>
+                <div class="list-container" id="latest-activity" style="max-height: 200px;">
+                    <div class="empty-state">Monitoring social feeds...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="connection-status" class="connection-status disconnected">
+        <div class="status-dot"></div>
+        <span>Connecting...</span>
+    </div>
+
+    <script>
+        let ws;
+        let startTime = Date.now();
+
+        // WebSocket connection
+        function connect() {
+            ws = new WebSocket('ws://localhost:3001');
+
+            ws.onopen = () => {
+                console.log('Connected to server');
+                updateConnectionStatus(true);
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+
+            ws.onclose = () => {
+                console.log('Disconnected');
+                updateConnectionStatus(false);
+                setTimeout(connect, 3000);
+            };
+        }
+
+        function handleMessage(message) {
+            const { type, chain, data } = message;
+
+            switch (type) {
+                case 'state':
+                    updateArbitrageState(data);
+                    break;
+                case 'price':
+                    updatePrice(chain, data);
+                    break;
+                case 'opportunity':
+                    addOpportunity(data);
+                    break;
+                case 'sentiment':
+                    updateSentiment(data);
+                    break;
+                case 'trending':
+                    addTrendingToken(data);
+                    break;
+                case 'activity':
+                    addActivity(data);
+                    break;
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connection-status');
+            statusEl.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+            statusEl.querySelector('span').textContent = connected ? 'Connected' : 'Disconnected';
+        }
+
+        function updateArbitrageState(state) {
+            if (state.prices.solana) updatePrice('solana', state.prices.solana);
+            if (state.prices.ethereum) updatePrice('ethereum', state.prices.ethereum);
+
+            document.getElementById('stat-opportunities').textContent = state.stats.totalOpportunities;
+            document.getElementById('stat-trades').textContent = state.stats.totalTrades;
+            document.getElementById('stat-profit').textContent = '$' + state.stats.totalProfit.toFixed(2);
+
+            if (state.running) {
+                document.getElementById('bot-status').textContent = '● RUNNING';
+                document.getElementById('bot-status').className = 'status-badge status-running';
+            }
+        }
+
+        function updatePrice(chain, data) {
+            if (chain === 'solana') {
+                document.getElementById('sol-price').textContent = '$' + data.price.toFixed(2);
+                document.getElementById('sol-source').textContent = data.dex || 'Jupiter';
+                document.getElementById('sol-timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
+            } else if (chain === 'ethereum') {
+                document.getElementById('eth-price').textContent = '$' + data.price.toFixed(2);
+                document.getElementById('eth-source').textContent = data.dex || 'Uniswap V3';
+                document.getElementById('eth-timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
+            }
+        }
+
+        function addOpportunity(opp) {
+            const list = document.getElementById('opportunities');
+            if (list.querySelector('.empty-state')) {
+                list.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'token-item';
+            item.style.borderLeftColor = '#10b981';
+            item.innerHTML = `
+                <div style="font-size: 0.85rem;">
+                    <strong>Buy ${opp.buyChain.toUpperCase()}</strong> @ $${opp.buyPrice.toFixed(2)}
+                    → <strong>Sell ${opp.sellChain.toUpperCase()}</strong> @ $${opp.sellPrice.toFixed(2)}
+                    <span class="sentiment-badge sentiment-positive">+${opp.profitPercentage.toFixed(2)}%</span>
+                </div>
+                <div class="timestamp">${new Date(opp.timestamp).toLocaleString()}</div>
+            `;
+
+            list.insertBefore(item, list.firstChild);
+            if (list.children.length > 5) list.lastChild.remove();
+
+            // Update stats
+            const currentCount = parseInt(document.getElementById('stat-opportunities').textContent);
+            document.getElementById('stat-opportunities').textContent = currentCount + 1;
+        }
+
+        function updateSentiment(data) {
+            document.getElementById('tokens-tracked').textContent = data.tokensTracked || 0;
+            document.getElementById('mentions-hour').textContent = data.mentionsPerHour || 0;
+            document.getElementById('positive-pct').textContent = (data.positivePct || 0) + '%';
+
+            if (data.topGainer) {
+                document.getElementById('top-gainer-name').textContent = data.topGainer.name;
+                document.getElementById('top-gainer-score').textContent = data.topGainer.score.toFixed(1);
+            }
+
+            if (data.hotToken) {
+                document.getElementById('hot-token-name').textContent = data.hotToken.name;
+                document.getElementById('hot-token-mentions').textContent = data.hotToken.mentions;
+            }
+        }
+
+        function addTrendingToken(token) {
+            const list = document.getElementById('trending-tokens');
+            if (list.querySelector('.empty-state')) {
+                list.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'token-item';
+
+            const sentimentClass = token.sentiment > 0.5 ? 'sentiment-positive' :
+                token.sentiment < -0.2 ? 'sentiment-negative' : 'sentiment-neutral';
+            const sentimentText = token.sentiment > 0.5 ? 'Bullish' :
+                token.sentiment < -0.2 ? 'Bearish' : 'Neutral';
+
+            item.innerHTML = `
+                <div class="token-header">
+                    <div>
+                        <span class="token-name">${token.name}</span>
+                        <span class="token-symbol">$${token.symbol}</span>
+                        ${token.trending ? '<span class="trending-badge">🔥 TRENDING</span>' : ''}
+                    </div>
+                    <span class="sentiment-badge ${sentimentClass}">${sentimentText}</span>
+                </div>
+                <div class="token-metrics">
+                    <div class="metric">
+                        <span>Mentions</span>
+                        <span class="metric-value">${token.mentions}</span>
+                    </div>
+                    <div class="metric">
+                        <span>Engagement</span>
+                        <span class="metric-value">${token.engagement}</span>
+                    </div>
+                    <div class="metric">
+                        <span>Score</span>
+                        <span class="metric-value">${token.score.toFixed(1)}</span>
+                    </div>
+                </div>
+                <div class="social-stats">
+                    <div class="social-stat">🐦 ${token.twitter || 0}</div>
+                    <div class="social-stat">🟣 ${token.farcaster || 0}</div>
+                </div>
+                <div class="timestamp">${new Date(token.timestamp).toLocaleString()}</div>
+            `;
+
+            list.insertBefore(item, list.firstChild);
+            if (list.children.length > 10) list.lastChild.remove();
+        }
+
+        function addActivity(activity) {
+            const list = document.getElementById('latest-activity');
+            if (list.querySelector('.empty-state')) {
+                list.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'token-item';
+            item.style.borderLeftColor = '#8b5cf6';
+            item.innerHTML = `
+                <div style="font-size: 0.8rem;">
+                    <strong>${activity.platform === 'twitter' ? '🐦 Twitter' : '🟣 Farcaster'}</strong>
+                    <div style="margin-top: 5px;  opacity: 0.9;">${activity.text}</div>
+                    <div class="timestamp">${new Date(activity.timestamp).toLocaleString()}</div>
+                </div>
+            `;
+
+            list.insertBefore(item, list.firstChild);
+            if (list.children.length > 5) list.lastChild.remove();
+        }
+
+        // Update uptime
+        setInterval(() => {
+            const uptimeMs = Date.now() - startTime;
+            const minutes = Math.floor(uptimeMs / 60000);
+            const seconds = Math.floor((uptimeMs % 60000) / 1000);
+            document.getElementById('stat-uptime').textContent = `${minutes}m ${seconds}s`;
+        }, 1000);
+
+        // Generate particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 30;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+
+                const size = Math.random() * 5 + 2;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${Math.random() * 100}%`;
+
+                const duration = Math.random() * 10 + 10;
+                particle.style.animationDuration = `${duration}s`;
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        createParticles();
+        connect();
+    </script>
+</body>
+
+</html>
