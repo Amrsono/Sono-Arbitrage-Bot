@@ -680,8 +680,8 @@
             item.style.borderLeftColor = '#10b981';
             item.innerHTML = `
                 <div style="font-size: 0.85rem;">
-                    <strong>Buy G-Token on ${opp.buyChain.toUpperCase()}</strong> @ $${opp.buyPrice.toFixed(2)}
-                    → <strong>Sell G-Token on ${opp.sellChain.toUpperCase()}</strong> @ $${opp.sellPrice.toFixed(2)}
+                    <strong>Buy ${getSymbol(opp.buyChain)} on ${opp.buyChain.toUpperCase()}</strong> @ $${opp.buyPrice.toFixed(2)}
+                    → <strong>Sell ${getSymbol(opp.buyChain)} on ${opp.sellChain.toUpperCase()}</strong> @ $${opp.sellPrice.toFixed(2)}
                     <span class="sentiment-badge sentiment-positive">+${opp.profitPercentage.toFixed(2)}%</span>
                 </div>
                 <div class="timestamp">${new Date(opp.timestamp).toLocaleString()}</div>
@@ -807,6 +807,15 @@
                 particle.style.animationDelay = `${Math.random() * 5}s`;
 
                 particlesContainer.appendChild(particle);
+            }
+        }
+
+        function getSymbol(chain) {
+            switch (chain) {
+                case 'solana': return 'SOL';
+                case 'ethereum': return 'ETH';
+                case 'pi': return 'PI';
+                default: return 'TOKEN';
             }
         }
 
