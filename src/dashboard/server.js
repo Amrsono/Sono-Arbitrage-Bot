@@ -36,6 +36,11 @@ const botState = {
             dex: 'uniswap-v3',
             timestamp: Date.now(),
         },
+        pi: {
+            price: 45.20,
+            dex: 'pi-network',
+            timestamp: Date.now(),
+        },
     },
     opportunities: [],
     trades: [],
@@ -99,19 +104,45 @@ function simulatePriceUpdates() {
             data: botState.prices.ethereum,
         });
 
+        // Pi Network price with slight random variation
+        const piVariation = (Math.random() - 0.5) * 0.5; // ±0.5
+        botState.prices.pi.price += piVariation;
+        botState.prices.pi.timestamp = Date.now();
+
+        broadcast({
+            type: 'price',
+            chain: 'pi',
+            data: botState.prices.pi,
+        });
+
         // Occasionally detect an "opportunity"
-        if (Math.random() > 0.7) { // 30% chance each cycle
-            const spread = Math.abs(botState.prices.solana.price - botState.prices.ethereum.price / 16);
-            const profitPct = (spread / botState.prices.solana.price) * 100;
+        if (Math.random() > 0.6) { // 40% chance each cycle
+            // Pick random pair
+            const chains = ['solana', 'ethereum', 'pi'];
+            const buyChain = chains[Math.floor(Math.random() * chains.length)];
+            let sellChain = chains[Math.floor(Math.random() * chains.length)];
+
+            while (sellChain === buyChain) {
+                sellChain = chains[Math.floor(Math.random() * chains.length)];
+            }
+
+            const buyPrice = botState.prices[buyChain].price;
+            const sellPrice = botState.prices[sellChain].price;
+
+            // Normalize for demo (assume cross-chain arbitrage via bridge/wrapper)
+            // Real logic would be complex. Here we just fake a profitable spread
+
+            const spread = Math.random() * (buyPrice * 0.05);
+            const profitPct = (spread / buyPrice) * 100;
 
             if (profitPct > 0.5) {
                 botState.stats.totalOpportunities++;
 
                 const opportunity = {
-                    buyChain: 'solana',
-                    sellChain: 'ethereum',
-                    buyPrice: botState.prices.solana.price,
-                    sellPrice: botState.prices.ethereum.price,
+                    buyChain: buyChain,
+                    sellChain: sellChain,
+                    buyPrice: buyPrice,
+                    sellPrice: buyPrice + spread, // Simulated sell price
                     profitPercentage: profitPct,
                     timestamp: Date.now(),
                 };

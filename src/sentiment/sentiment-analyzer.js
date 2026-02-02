@@ -29,6 +29,7 @@ class SentimentAnalyzer {
             { name: 'Wen', symbol: 'WEN', baseScore: 6.3 },
             { name: 'Myro', symbol: 'MYRO', baseScore: 7.5 },
             { name: 'Popcat', symbol: 'POPCAT', trending: true, baseScore: 8.8 },
+            { name: 'Pi Network', symbol: 'PI', trending: true, baseScore: 8.9 },
         ];
 
         return mockTokens.map(token => this.enrichTokenData(token));

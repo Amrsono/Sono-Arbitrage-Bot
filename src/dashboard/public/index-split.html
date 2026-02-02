@@ -480,6 +480,14 @@
                 </div>
 
                 <div class="card">
+                    <h2><span class="icon">🥧</span> Pi Network</h2>
+                    <div class="price-label">PI Price</div>
+                    <div class="price-display" id="pi-price">--</div>
+                    <div class="price-label">Source: <span id="pi-source">Pi Bridge</span></div>
+                    <div class="timestamp" id="pi-timestamp">Waiting...</div>
+                </div>
+
+                <div class="card">
                     <h2><span class="icon">📊</span> Stats</h2>
                     <div class="stat-row">
                         <span>Opportunities</span>
@@ -633,6 +641,7 @@
         function updateArbitrageState(state) {
             if (state.prices.solana) updatePrice('solana', state.prices.solana);
             if (state.prices.ethereum) updatePrice('ethereum', state.prices.ethereum);
+            if (state.prices.pi) updatePrice('pi', state.prices.pi);
 
             document.getElementById('stat-opportunities').textContent = state.stats.totalOpportunities;
             document.getElementById('stat-trades').textContent = state.stats.totalTrades;
@@ -653,6 +662,10 @@
                 document.getElementById('eth-price').textContent = '$' + data.price.toFixed(2);
                 document.getElementById('eth-source').textContent = data.dex || 'Uniswap V3';
                 document.getElementById('eth-timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
+            } else if (chain === 'pi') {
+                document.getElementById('pi-price').textContent = '$' + data.price.toFixed(2);
+                document.getElementById('pi-source').textContent = data.dex || 'Pi Bridge';
+                document.getElementById('pi-timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
             }
         }
 
