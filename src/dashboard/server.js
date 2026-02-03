@@ -299,19 +299,12 @@ try {
                 }
             });
         } else {
-            console.log('⚠️  No log file found, using simulated data');
-            console.log('📊 Generating mock price updates for demonstration...');
-            simulatePriceUpdates();
+            console.log('⚠️  No log file found.');
         }
     }, 2000);
 } catch (error) {
-    console.warn('Could not set up log watching, using simulated data');
-    simulatePriceUpdates();
+    console.warn('Could not set up log watching');
 }
-
-// Start simulation immediately for demo purposes
-console.log('🎮 Starting price simulation...');
-simulatePriceUpdates();
 
 // Import and start sentiment analyzer
 import SentimentAnalyzer from '../sentiment/sentiment-analyzer.js';
