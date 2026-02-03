@@ -513,208 +513,254 @@
                 <div class="list-container" id="opportunities">
                     <div class="empty-state">Scanning for opportunities...</div>
                 </div>
+                <div class="card" style="margin-top: 20px;">
+                    <h2><span class="icon">📜</span> Transaction History (Live)</h2>
+                    <div class="list-container" id="transaction-feed" style="max-height: 250px;">
+                        <div class="empty-state">Waiting for trades...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: Social Sentiment Tracker -->
+            <div class="panel panel-right">
+                <div class="section-header">
+                    <h1>📊 Social Sentiment Tracker</h1>
+                    <p class="subtitle">Real-time Crypto Buzz Monitor</p>
+                    <div>
+                        <span class="status-badge status-running">● TRACKING</span>
+                        <span class="status-badge" style="background: #8b5cf6;">🐦 Twitter + Farcaster</span>
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <div class="card">
+                        <h2><span class="icon">🔥</span> Trending</h2>
+                        <div class="stat-row">
+                            <span>Tokens Tracked</span>
+                            <span class="stat-value" id="tokens-tracked">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Mentions/Hour</span>
+                            <span class="stat-value" id="mentions-hour">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Positive Sentiment</span>
+                            <span class="stat-value" id="positive-pct">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2><span class="icon">📈</span> Top Gainer</h2>
+                        <div class="price-label" id="top-gainer-name">--</div>
+                        <div class="price-display" style="font-size: 1.5rem;" id="top-gainer-score">--</div>
+                        <div class="price-label">Sentiment Score</div>
+                    </div>
+
+                    <div class="card">
+                        <h2><span class="icon">⚡</span> Hot Now</h2>
+                        <div class="price-label" id="hot-token-name">--</div>
+                        <div class="price-display" style="font-size: 1.5rem;" id="hot-token-mentions">--</div>
+                        <div class="price-label">Mentions (24h)</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2><span class="icon">🚀</span> Trending Tokens</h2>
+                    <div class="list-container" id="trending-tokens">
+                        <div class="empty-state">Analyzing social sentiment...</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2><span class="icon">🔔</span> Latest Activity</h2>
+                    <div class="list-container" id="latest-activity" style="max-height: 200px;">
+                        <div class="empty-state">Monitoring social feeds...</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- RIGHT PANEL: Social Sentiment Tracker -->
-        <div class="panel panel-right">
-            <div class="section-header">
-                <h1>📊 Social Sentiment Tracker</h1>
-                <p class="subtitle">Real-time Crypto Buzz Monitor</p>
-                <div>
-                    <span class="status-badge status-running">● TRACKING</span>
-                    <span class="status-badge" style="background: #8b5cf6;">🐦 Twitter + Farcaster</span>
-                </div>
-            </div>
-
-            <div class="grid">
-                <div class="card">
-                    <h2><span class="icon">🔥</span> Trending</h2>
-                    <div class="stat-row">
-                        <span>Tokens Tracked</span>
-                        <span class="stat-value" id="tokens-tracked">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>Mentions/Hour</span>
-                        <span class="stat-value" id="mentions-hour">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>Positive Sentiment</span>
-                        <span class="stat-value" id="positive-pct">0%</span>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h2><span class="icon">📈</span> Top Gainer</h2>
-                    <div class="price-label" id="top-gainer-name">--</div>
-                    <div class="price-display" style="font-size: 1.5rem;" id="top-gainer-score">--</div>
-                    <div class="price-label">Sentiment Score</div>
-                </div>
-
-                <div class="card">
-                    <h2><span class="icon">⚡</span> Hot Now</h2>
-                    <div class="price-label" id="hot-token-name">--</div>
-                    <div class="price-display" style="font-size: 1.5rem;" id="hot-token-mentions">--</div>
-                    <div class="price-label">Mentions (24h)</div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2><span class="icon">🚀</span> Trending Tokens</h2>
-                <div class="list-container" id="trending-tokens">
-                    <div class="empty-state">Analyzing social sentiment...</div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2><span class="icon">🔔</span> Latest Activity</h2>
-                <div class="list-container" id="latest-activity" style="max-height: 200px;">
-                    <div class="empty-state">Monitoring social feeds...</div>
-                </div>
-            </div>
+        <div id="connection-status" class="connection-status disconnected">
+            <div class="status-dot"></div>
+            <span>Connecting...</span>
         </div>
-    </div>
 
-    <div id="connection-status" class="connection-status disconnected">
-        <div class="status-dot"></div>
-        <span>Connecting...</span>
-    </div>
+        <script>
+            let ws;
+            let startTime = Date.now();
 
-    <script>
-        let ws;
-        let startTime = Date.now();
+            // Toggle Trading
+            async function toggleTrading() {
+                const btn = document.getElementById('toggleTradingBtn');
+                const isPaused = btn.innerText.includes('Resume');
+                const endpoint = isPaused ? '/api/bot/resume' : '/api/bot/pause';
 
-        // Toggle Trading
-        async function toggleTrading() {
-            const btn = document.getElementById('toggleTradingBtn');
-            const isPaused = btn.innerText.includes('Resume');
-            const endpoint = isPaused ? '/api/bot/resume' : '/api/bot/pause';
-
-            try {
-                const response = await fetch(endpoint, { method: 'POST' });
-                const data = await response.json();
-                if (data.success) {
-                    // Optimistic UI update
-                    updateButtonState(!isPaused);
-                }
-            } catch (error) {
-                console.error('Failed to toggle trading:', error);
-                alert('Failed to toggle trading');
-            }
-        }
-
-        function updateButtonState(isPaused) {
-            const btn = document.getElementById('toggleTradingBtn');
-            if (isPaused) {
-                btn.innerText = 'Resume Trading';
-                btn.className = 'btn btn-success'; // Green to resume
-                btn.style.background = '#10b981';
-            } else {
-                btn.innerText = 'Stop Trading';
-                btn.className = 'btn btn-danger'; // Red to stop
-                btn.style.background = '#ef4444';
-            }
-        }
-
-        // WebSocket connection
-        function connect() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const host = window.location.host;
-            ws = new WebSocket(`${protocol}//${host}`);
-
-            ws.onopen = () => {
-                console.log('Connected to server');
-                updateConnectionStatus(true);
-            };
-
-            ws.onmessage = (event) => {
-                const message = JSON.parse(event.data);
-                handleMessage(message);
-            };
-
-            ws.onclose = () => {
-                console.log('Disconnected');
-                updateConnectionStatus(false);
-                setTimeout(connect, 3000);
-            };
-        }
-
-        function handleMessage(message) {
-            const { type, chain, data } = message;
-
-            switch (type) {
-                case 'state':
-                    updateArbitrageState(data);
-                    // Update pause state
-                    if (data.isPaused !== undefined) {
-                        updateButtonState(data.isPaused);
+                try {
+                    const response = await fetch(endpoint, { method: 'POST' });
+                    const data = await response.json();
+                    if (data.success) {
+                        // Optimistic UI update
+                        updateButtonState(!isPaused);
                     }
-                    break;
-                case 'price':
-                    updatePrice(chain, data);
-                    break;
-                case 'opportunity':
-                    addOpportunity(data);
-                    break;
-                case 'sentiment':
-                    updateSentiment(data);
-                    break;
-                case 'trending':
-                    addTrendingToken(data);
-                    break;
-                case 'activity':
-                    addActivity(data);
-                    break;
-            }
-        }
-
-        function updateConnectionStatus(connected) {
-            const statusEl = document.getElementById('connection-status');
-            statusEl.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
-            statusEl.querySelector('span').textContent = connected ? 'Connected' : 'Disconnected';
-        }
-
-        function updateArbitrageState(state) {
-            if (state.prices.solana) updatePrice('solana', state.prices.solana);
-            if (state.prices.ethereum) updatePrice('ethereum', state.prices.ethereum);
-            if (state.prices.pi) updatePrice('pi', state.prices.pi);
-
-            document.getElementById('stat-opportunities').textContent = state.stats.totalOpportunities;
-            document.getElementById('stat-trades').textContent = state.stats.totalTrades;
-            document.getElementById('stat-profit').textContent = '$' + state.stats.totalProfit.toFixed(2);
-
-            if (state.running) {
-                document.getElementById('bot-status').textContent = '● RUNNING';
-                document.getElementById('bot-status').className = 'status-badge status-running';
-            }
-        }
-
-        function updatePrice(chain, data) {
-            if (chain === 'solana') {
-                document.getElementById('sol-price').textContent = '$' + data.price.toFixed(2);
-                document.getElementById('sol-source').textContent = data.dex || 'Jupiter';
-                document.getElementById('sol-timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
-            } else if (chain === 'ethereum') {
-                document.getElementById('eth-price').textContent = '$' + data.price.toFixed(2);
-                document.getElementById('eth-source').textContent = data.dex || 'Uniswap V3';
-                document.getElementById('eth-timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
-            } else if (chain === 'pi') {
-                document.getElementById('pi-price').textContent = '$' + data.price.toFixed(2);
-                document.getElementById('pi-source').textContent = data.dex || 'Pi Bridge';
-                document.getElementById('pi-timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
-            }
-        }
-
-        function addOpportunity(opp) {
-            const list = document.getElementById('opportunities');
-            if (list.querySelector('.empty-state')) {
-                list.innerHTML = '';
+                } catch (error) {
+                    console.error('Failed to toggle trading:', error);
+                    alert('Failed to toggle trading');
+                }
             }
 
-            const item = document.createElement('div');
-            item.className = 'token-item';
-            item.style.borderLeftColor = '#10b981';
-            item.innerHTML = `
+            function updateButtonState(isPaused) {
+                const btn = document.getElementById('toggleTradingBtn');
+                if (isPaused) {
+                    btn.innerText = 'Resume Trading';
+                    btn.className = 'btn btn-success'; // Green to resume
+                    btn.style.background = '#10b981';
+                } else {
+                    btn.innerText = 'Stop Trading';
+                    btn.className = 'btn btn-danger'; // Red to stop
+                    btn.style.background = '#ef4444';
+                }
+            }
+
+            // WebSocket connection
+            function connect() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const host = window.location.host;
+                ws = new WebSocket(`${protocol}//${host}`);
+
+                ws.onopen = () => {
+                    console.log('Connected to server');
+                    updateConnectionStatus(true);
+                };
+
+                ws.onmessage = (event) => {
+                    const message = JSON.parse(event.data);
+                    handleMessage(message);
+                };
+
+                ws.onclose = () => {
+                    console.log('Disconnected');
+                    updateConnectionStatus(false);
+                    setTimeout(connect, 3000);
+                };
+            }
+
+            function handleMessage(message) {
+                const { type, chain, data } = message;
+
+                switch (type) {
+                    case 'state':
+                        updateArbitrageState(data);
+                        // Update pause state
+                        if (data.isPaused !== undefined) {
+                            updateButtonState(data.isPaused);
+                        }
+                        break;
+                    case 'price':
+                        updatePrice(chain, data);
+                        break;
+                    case 'opportunity':
+                        addOpportunity(data);
+                        break;
+                    case 'sentiment':
+                        updateSentiment(data);
+                        break;
+                    case 'trending':
+                        addTrendingToken(data);
+                        break;
+                    case 'activity':
+                        addActivity(data);
+                        break;
+                }
+            }
+
+            function updateConnectionStatus(connected) {
+                const statusEl = document.getElementById('connection-status');
+                statusEl.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+                statusEl.querySelector('span').textContent = connected ? 'Connected' : 'Disconnected';
+            }
+
+            function addTrade(trade) {
+                const container = document.getElementById('transaction-feed');
+                if (container.querySelector('.empty-state')) {
+                    container.innerHTML = '';
+                }
+
+                const div = document.createElement('div');
+                div.className = 'token-item';
+                div.style.borderLeft = trade.success ? '4px solid #10b981' : '4px solid #ef4444';
+
+                const timestamp = new Date(trade.timestamp).toLocaleTimeString();
+                const profitClass = (trade.result?.netProfit || 0) > 0 ? 'text-green-400' : 'text-red-400';
+                const statusIcon = trade.success ? '✅' : '❌';
+
+                div.innerHTML = `
+                <div class="token-header">
+                    <span class="token-name">${statusIcon} ${trade.opportunity.buyChain.toUpperCase()} ➔ ${trade.opportunity.sellChain.toUpperCase()}</span>
+                    <span class="timestamp">${timestamp}</span>
+                </div>
+                <div class="token-metrics" style="grid-template-columns: 1fr 1fr;">
+                    <div class="metric">
+                        <span>Amount</span>
+                        <span class="metric-value">$${trade.opportunity.tradeSize.toFixed(2)}</span>
+                    </div>
+                    <div class="metric">
+                        <span>Result</span>
+                        <span class="metric-value" style="color: ${trade.success ? '#10b981' : '#ef4444'}">
+                            ${trade.success ? '+$' + (trade.result?.netProfit?.toFixed(2) || '0.00') : 'FAILED'}
+                        </span>
+                    </div>
+                </div>
+            `;
+
+                container.prepend(div);
+
+                // Keep max 50 items
+                if (container.children.length > 50) {
+                    container.lastElementChild.remove();
+                }
+            }
+
+            function updateArbitrageState(state) {
+                if (state.prices.solana) updatePrice('solana', state.prices.solana);
+                if (state.prices.ethereum) updatePrice('ethereum', state.prices.ethereum);
+                if (state.prices.pi) updatePrice('pi', state.prices.pi);
+
+                document.getElementById('stat-opportunities').textContent = state.stats.totalOpportunities;
+                document.getElementById('stat-trades').textContent = state.stats.totalTrades;
+                document.getElementById('stat-profit').textContent = '$' + state.stats.totalProfit.toFixed(2);
+
+                if (state.running) {
+                    document.getElementById('bot-status').textContent = '● RUNNING';
+                    document.getElementById('bot-status').className = 'status-badge status-running';
+                }
+            }
+
+            function updatePrice(chain, data) {
+                if (chain === 'solana') {
+                    document.getElementById('sol-price').textContent = '$' + data.price.toFixed(2);
+                    document.getElementById('sol-source').textContent = data.dex || 'Jupiter';
+                    document.getElementById('sol-timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
+                } else if (chain === 'ethereum') {
+                    document.getElementById('eth-price').textContent = '$' + data.price.toFixed(2);
+                    document.getElementById('eth-source').textContent = data.dex || 'Uniswap V3';
+                    document.getElementById('eth-timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
+                } else if (chain === 'pi') {
+                    document.getElementById('pi-price').textContent = '$' + data.price.toFixed(2);
+                    document.getElementById('pi-source').textContent = data.dex || 'Pi Bridge';
+                    document.getElementById('pi-timestamp').textContent = new Date(data.timestamp).toLocaleTimeString();
+                }
+            }
+
+            function addOpportunity(opp) {
+                const list = document.getElementById('opportunities');
+                if (list.querySelector('.empty-state')) {
+                    list.innerHTML = '';
+                }
+
+                const item = document.createElement('div');
+                item.className = 'token-item';
+                item.style.borderLeftColor = '#10b981';
+                item.innerHTML = `
                 <div style="font-size: 0.85rem;">
                     <strong>Buy ${getSymbol(opp.buyChain)} on ${opp.buyChain.toUpperCase()}</strong> @ $${opp.buyPrice.toFixed(2)}
                     → <strong>Sell ${getSymbol(opp.buyChain)} on ${opp.sellChain.toUpperCase()}</strong> @ $${opp.sellPrice.toFixed(2)}
@@ -738,45 +784,45 @@
                 </div>
             `;
 
-            list.insertBefore(item, list.firstChild);
-            if (list.children.length > 5) list.lastChild.remove();
+                list.insertBefore(item, list.firstChild);
+                if (list.children.length > 5) list.lastChild.remove();
 
-            // Update stats
-            const currentCount = parseInt(document.getElementById('stat-opportunities').textContent);
-            document.getElementById('stat-opportunities').textContent = currentCount + 1;
-        }
-
-        function updateSentiment(data) {
-            document.getElementById('tokens-tracked').textContent = data.tokensTracked || 0;
-            document.getElementById('mentions-hour').textContent = data.mentionsPerHour || 0;
-            document.getElementById('positive-pct').textContent = (data.positivePct || 0) + '%';
-
-            if (data.topGainer) {
-                document.getElementById('top-gainer-name').textContent = data.topGainer.name;
-                document.getElementById('top-gainer-score').textContent = data.topGainer.score.toFixed(1);
+                // Update stats
+                const currentCount = parseInt(document.getElementById('stat-opportunities').textContent);
+                document.getElementById('stat-opportunities').textContent = currentCount + 1;
             }
 
-            if (data.hotToken) {
-                document.getElementById('hot-token-name').textContent = data.hotToken.name;
-                document.getElementById('hot-token-mentions').textContent = data.hotToken.mentions;
+            function updateSentiment(data) {
+                document.getElementById('tokens-tracked').textContent = data.tokensTracked || 0;
+                document.getElementById('mentions-hour').textContent = data.mentionsPerHour || 0;
+                document.getElementById('positive-pct').textContent = (data.positivePct || 0) + '%';
+
+                if (data.topGainer) {
+                    document.getElementById('top-gainer-name').textContent = data.topGainer.name;
+                    document.getElementById('top-gainer-score').textContent = data.topGainer.score.toFixed(1);
+                }
+
+                if (data.hotToken) {
+                    document.getElementById('hot-token-name').textContent = data.hotToken.name;
+                    document.getElementById('hot-token-mentions').textContent = data.hotToken.mentions;
+                }
             }
-        }
 
-        function addTrendingToken(token) {
-            const list = document.getElementById('trending-tokens');
-            if (list.querySelector('.empty-state')) {
-                list.innerHTML = '';
-            }
+            function addTrendingToken(token) {
+                const list = document.getElementById('trending-tokens');
+                if (list.querySelector('.empty-state')) {
+                    list.innerHTML = '';
+                }
 
-            const item = document.createElement('div');
-            item.className = 'token-item';
+                const item = document.createElement('div');
+                item.className = 'token-item';
 
-            const sentimentClass = token.sentiment > 0.5 ? 'sentiment-positive' :
-                token.sentiment < -0.2 ? 'sentiment-negative' : 'sentiment-neutral';
-            const sentimentText = token.sentiment > 0.5 ? 'Bullish' :
-                token.sentiment < -0.2 ? 'Bearish' : 'Neutral';
+                const sentimentClass = token.sentiment > 0.5 ? 'sentiment-positive' :
+                    token.sentiment < -0.2 ? 'sentiment-negative' : 'sentiment-neutral';
+                const sentimentText = token.sentiment > 0.5 ? 'Bullish' :
+                    token.sentiment < -0.2 ? 'Bearish' : 'Neutral';
 
-            item.innerHTML = `
+                item.innerHTML = `
                 <div class="token-header">
                     <div>
                         <span class="token-name">${token.name}</span>
@@ -806,20 +852,20 @@
                 <div class="timestamp">${new Date(token.timestamp).toLocaleString()}</div>
             `;
 
-            list.insertBefore(item, list.firstChild);
-            if (list.children.length > 10) list.lastChild.remove();
-        }
-
-        function addActivity(activity) {
-            const list = document.getElementById('latest-activity');
-            if (list.querySelector('.empty-state')) {
-                list.innerHTML = '';
+                list.insertBefore(item, list.firstChild);
+                if (list.children.length > 10) list.lastChild.remove();
             }
 
-            const item = document.createElement('div');
-            item.className = 'token-item';
-            item.style.borderLeftColor = '#8b5cf6';
-            item.innerHTML = `
+            function addActivity(activity) {
+                const list = document.getElementById('latest-activity');
+                if (list.querySelector('.empty-state')) {
+                    list.innerHTML = '';
+                }
+
+                const item = document.createElement('div');
+                item.className = 'token-item';
+                item.style.borderLeftColor = '#8b5cf6';
+                item.innerHTML = `
                 <div style="font-size: 0.8rem;">
                     <strong>${activity.platform === 'twitter' ? '🐦 Twitter' : '🟣 Farcaster'}</strong>
                     <div style="margin-top: 5px;  opacity: 0.9;">${activity.text}</div>
@@ -827,52 +873,52 @@
                 </div>
             `;
 
-            list.insertBefore(item, list.firstChild);
-            if (list.children.length > 5) list.lastChild.remove();
-        }
-
-        // Update uptime
-        setInterval(() => {
-            const uptimeMs = Date.now() - startTime;
-            const minutes = Math.floor(uptimeMs / 60000);
-            const seconds = Math.floor((uptimeMs % 60000) / 1000);
-            document.getElementById('stat-uptime').textContent = `${minutes}m ${seconds}s`;
-        }, 1000);
-
-        // Generate particles
-        function createParticles() {
-            const particlesContainer = document.getElementById('particles');
-            const particleCount = 30;
-
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-
-                const size = Math.random() * 5 + 2;
-                particle.style.width = `${size}px`;
-                particle.style.height = `${size}px`;
-                particle.style.left = `${Math.random() * 100}%`;
-
-                const duration = Math.random() * 10 + 10;
-                particle.style.animationDuration = `${duration}s`;
-                particle.style.animationDelay = `${Math.random() * 5}s`;
-
-                particlesContainer.appendChild(particle);
+                list.insertBefore(item, list.firstChild);
+                if (list.children.length > 5) list.lastChild.remove();
             }
-        }
 
-        function getSymbol(chain) {
-            switch (chain) {
-                case 'solana': return 'SOL';
-                case 'ethereum': return 'ETH';
-                case 'pi': return 'PI';
-                default: return 'TOKEN';
+            // Update uptime
+            setInterval(() => {
+                const uptimeMs = Date.now() - startTime;
+                const minutes = Math.floor(uptimeMs / 60000);
+                const seconds = Math.floor((uptimeMs % 60000) / 1000);
+                document.getElementById('stat-uptime').textContent = `${minutes}m ${seconds}s`;
+            }, 1000);
+
+            // Generate particles
+            function createParticles() {
+                const particlesContainer = document.getElementById('particles');
+                const particleCount = 30;
+
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+
+                    const size = Math.random() * 5 + 2;
+                    particle.style.width = `${size}px`;
+                    particle.style.height = `${size}px`;
+                    particle.style.left = `${Math.random() * 100}%`;
+
+                    const duration = Math.random() * 10 + 10;
+                    particle.style.animationDuration = `${duration}s`;
+                    particle.style.animationDelay = `${Math.random() * 5}s`;
+
+                    particlesContainer.appendChild(particle);
+                }
             }
-        }
 
-        createParticles();
-        connect();
-    </script>
+            function getSymbol(chain) {
+                switch (chain) {
+                    case 'solana': return 'SOL';
+                    case 'ethereum': return 'ETH';
+                    case 'pi': return 'PI';
+                    default: return 'TOKEN';
+                }
+            }
+
+            createParticles();
+            connect();
+        </script>
 </body>
 
 </html>
