@@ -133,6 +133,14 @@ class ArbitrageDetectorAgent extends BaseAgent {
                     profitPercentage: profitPercentage.toFixed(2) + '%',
                     reasons: validation.errors,
                 });
+
+                // Emit skipped event for dashboard visibility
+                this.emit('arbitrage:skipped', {
+                    ...opportunity,
+                    skipped: true,
+                    reasons: validation.errors
+                });
+
                 return;
             }
 

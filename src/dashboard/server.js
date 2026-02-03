@@ -132,16 +132,21 @@ function syncBotEvents() {
     });
 
     // Opportunities
-    arbDetector.on('arbitrage:opportunity', (opp) => {
+    const handleOpportunity = (opp) => {
         // Add trade link metadata 
         opp.tradeLink = opp.buyChain === 'solana' ? 'https://phantom.app/' : 'https://www.binance.com/en/trade/ETH_USDT';
         opp.platformName = opp.buyChain === 'solana' ? 'Phantom' : 'Binance';
 
         botState.opportunities.unshift(opp);
         botState.opportunities = botState.opportunities.slice(0, 50);
-        botState.stats.totalOpportunities++;
+        if (!opp.skipped) {
+            botState.stats.totalOpportunities++;
+        }
         broadcast({ type: 'opportunity', data: opp });
-    });
+    };
+
+    arbDetector.on('arbitrage:opportunity', handleOpportunity);
+    arbDetector.on('arbitrage:skipped', handleOpportunity);
 
     // Trades
     tradeExecutor.on('trade:complete', (trade) => {
