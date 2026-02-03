@@ -1,119 +1,51 @@
-import express from 'express';
-import { WebSocketServer } from 'ws';
-import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
+import axios from 'axios';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
-const PORT = process.env.PORT || 3001;
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
-
-// State management with MOCK data for demonstration
-const botState = {
-    running: true,
-    agents: {
-        SOLANA_MONITOR: { status: 'running', lastUpdate: Date.now() },
-        ETHEREUM_MONITOR: { status: 'running', lastUpdate: Date.now() },
-        ARBITRAGE_DETECTOR: { status: 'running', lastUpdate: Date.now() },
-        TRADE_EXECUTOR: { status: 'running', lastUpdate: Date.now() },
-    },
-    prices: {
-        solana: {
-            price: 145.67,
-            dex: 'jupiter',
-            timestamp: Date.now(),
-        },
-        ethereum: {
-            price: 2345.89,
-            dex: 'uniswap-v3',
-            timestamp: Date.now(),
-        },
-        pi: {
-            price: 45.20,
-            dex: 'pi-network',
-            timestamp: Date.now(),
-        },
-    },
-    opportunities: [],
-    trades: [],
-    stats: {
-        uptime: 0,
-        totalOpportunities: 0,
-        totalTrades: 0,
-        totalProfit: 0,
-    },
-};
-
-// WebSocket server
-const wss = new WebSocketServer({ noServer: true });
-
-// Broadcast to all connected clients
-function broadcast(data) {
-    wss.clients.forEach((client) => {
-        if (client.readyState === 1) { // OPEN
-            client.send(JSON.stringify(data));
-        }
-    });
-}
-
-// WebSocket connection handler
-wss.on('connection', (ws) => {
-    console.log('📱 Dashboard client connected');
-
-    // Send current state immediately
-    ws.send(JSON.stringify({
-        type: 'state',
-        data: botState,
-    }));
-
-    ws.on('close', () => {
-        console.log('📱 Dashboard client disconnected');
-    });
-});
+// ... existing code ...
 
 // Simulate price updates for demonstration
 function simulatePriceUpdates() {
     setInterval(() => {
-        // Solana price with slight random variation
-        const solVariation = (Math.random() - 0.5) * 2; // ±1
-        botState.prices.solana.price += solVariation;
-        botState.prices.solana.timestamp = Date.now();
+        // Solana price - PRIORITIZE REAL DATA
+        const timeSinceLastSolUpdate = Date.now() - (botState.prices.solana.lastRealUpdate || 0);
+        if (timeSinceLastSolUpdate > 70000) {
+            const solVariation = (Math.random() - 0.5) * 2; // ±1
+            botState.prices.solana.price += solVariation;
+            botState.prices.solana.timestamp = Date.now();
 
-        broadcast({
-            type: 'price',
-            chain: 'solana',
-            data: botState.prices.solana,
-        });
+            broadcast({
+                type: 'price',
+                chain: 'solana',
+                data: botState.prices.solana,
+            });
+        }
 
-        // Ethereum price with slight random variation
-        const ethVariation = (Math.random() - 0.5) * 20; // ±10
-        botState.prices.ethereum.price += ethVariation;
-        botState.prices.ethereum.timestamp = Date.now();
+        // Ethereum price - PRIORITIZE REAL DATA
+        const timeSinceLastEthUpdate = Date.now() - (botState.prices.ethereum.lastRealUpdate || 0);
+        if (timeSinceLastEthUpdate > 70000) {
+            const ethVariation = (Math.random() - 0.5) * 20; // ±10
+            botState.prices.ethereum.price += ethVariation;
+            botState.prices.ethereum.timestamp = Date.now();
 
-        broadcast({
-            type: 'price',
-            chain: 'ethereum',
-            data: botState.prices.ethereum,
-        });
+            broadcast({
+                type: 'price',
+                chain: 'ethereum',
+                data: botState.prices.ethereum,
+            });
+        }
 
-        // Pi Network price with slight random variation
-        const piVariation = (Math.random() - 0.5) * 0.5; // ±0.5
-        botState.prices.pi.price += piVariation;
-        botState.prices.pi.timestamp = Date.now();
+        // Pi Network price - PRIORITIZE REAL DATA
+        const timeSinceLastPiUpdate = Date.now() - (botState.prices.pi.lastRealUpdate || 0);
+        if (timeSinceLastPiUpdate > 70000) {
+            const piVariation = (Math.random() - 0.5) * 0.5; // ±0.5
+            botState.prices.pi.price += piVariation;
+            botState.prices.pi.timestamp = Date.now();
 
-        broadcast({
-            type: 'price',
-            chain: 'pi',
-            data: botState.prices.pi,
-        });
+            broadcast({
+                type: 'price',
+                chain: 'pi',
+                data: botState.prices.pi,
+            });
+        }
 
         // Occasionally detect an "opportunity"
         if (Math.random() > 0.6) { // 40% chance each cycle
@@ -158,6 +90,59 @@ function simulatePriceUpdates() {
         }
     }, 5000); // Every 5 seconds
 }
+
+// Fetch real prices from CoinGecko (Pi, ETH, SOL)
+async function fetchPrices() {
+    try {
+        // Fetch Pi, Ethereum, Solana prices
+        const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=pi-network,ethereum,solana&vs_currencies=usd');
+
+        if (response.data) {
+            const now = Date.now();
+
+            // Update Pi
+            if (response.data['pi-network']?.usd) {
+                botState.prices.pi = {
+                    price: response.data['pi-network'].usd,
+                    dex: 'CoinGecko (IOU)',
+                    timestamp: now,
+                    lastRealUpdate: now
+                };
+                broadcast({ type: 'price', chain: 'pi', data: botState.prices.pi });
+            }
+
+            // Update Ethereum
+            if (response.data['ethereum']?.usd) {
+                botState.prices.ethereum = {
+                    price: response.data['ethereum'].usd,
+                    dex: 'CoinGecko',
+                    timestamp: now,
+                    lastRealUpdate: now
+                };
+                broadcast({ type: 'price', chain: 'ethereum', data: botState.prices.ethereum });
+            }
+
+            // Update Solana
+            if (response.data['solana']?.usd) {
+                botState.prices.solana = {
+                    price: response.data['solana'].usd,
+                    dex: 'CoinGecko',
+                    timestamp: now,
+                    lastRealUpdate: now
+                };
+                broadcast({ type: 'price', chain: 'solana', data: botState.prices.solana });
+            }
+
+            console.log('💰 Fetched real prices from CoinGecko');
+        }
+    } catch (error) {
+        console.error('Error fetching prices:', error.message);
+    }
+}
+
+// Start fetching real prices
+fetchPrices();
+setInterval(fetchPrices, 60000); // Every 60 seconds
 
 // Watch log file for real-time updates (if available)
 let logWatcher;
