@@ -38,7 +38,7 @@ const botState = {
             timestamp: Date.now(),
         },
         pi: {
-            price: 45.20,
+            price: 0.159, // Updated to match real market IOU price
             dex: 'pi-network',
             timestamp: Date.now(),
         },
@@ -114,8 +114,9 @@ function simulatePriceUpdates() {
         // Pi Network price - PRIORITIZE REAL DATA
         const timeSinceLastPiUpdate = Date.now() - (botState.prices.pi.lastRealUpdate || 0);
         if (timeSinceLastPiUpdate > 70000) {
-            const piVariation = (Math.random() - 0.5) * 0.5; // ±0.5
-            botState.prices.pi.price += piVariation;
+            // Smaller variation for the smaller price
+            const piVariation = (Math.random() - 0.5) * 0.005;
+            botState.prices.pi.price = Math.max(0.01, botState.prices.pi.price + piVariation);
             botState.prices.pi.timestamp = Date.now();
 
             broadcast({
@@ -173,7 +174,11 @@ function simulatePriceUpdates() {
 async function fetchPrices() {
     try {
         // Fetch Pi, Ethereum, Solana prices
-        const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=pi-network,ethereum,solana&vs_currencies=usd');
+        const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=pi-network,ethereum,solana&vs_currencies=usd', {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
 
         if (response.data) {
             const now = Date.now();
