@@ -493,6 +493,22 @@
                 </div>
 
                 <div class="card">
+                    <h2><span class="icon">💰</span> Wallet</h2>
+                    <div class="stat-row">
+                        <span>SOL Balance</span>
+                        <span class="stat-value" id="balance-sol">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>ETH Balance</span>
+                        <span class="stat-value" id="balance-eth">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>USDT/USDC</span>
+                        <span class="stat-value" id="balance-stable">--</span>
+                    </div>
+                </div>
+
+                <div class="card">
                     <h2><span class="icon">📊</span> Stats</h2>
                     <div class="stat-row">
                         <span>Opportunities</span>
@@ -597,6 +613,18 @@
         let startTime = Date.now();
 
         // Toggle Trading
+        function updateWallet(data) {
+            if (data.solana) {
+                document.getElementById('balance-sol').textContent = `${data.solana.sol} SOL`;
+            }
+            if (data.ethereum) {
+                document.getElementById('balance-eth').textContent = `${data.ethereum.eth} ETH`;
+            }
+            // Placeholder for stablecoins if we fetch them later
+            if (data.solana.usdc) document.getElementById('balance-stable').textContent = `${data.solana.usdc} USDC`;
+            else document.getElementById('balance-stable').textContent = 'Loading...';
+        }
+
         async function toggleTrading() {
             const btn = document.getElementById('toggleTradingBtn');
             const isPaused = btn.innerText.includes('Resume');
@@ -676,6 +704,12 @@
                     break;
                 case 'activity':
                     addActivity(data);
+                    break;
+                case 'trade':
+                    addTrade(data);
+                    break;
+                case 'balance':
+                    updateWallet(data);
                     break;
             }
         }

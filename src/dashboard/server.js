@@ -153,6 +153,11 @@ function syncBotEvents() {
         }
         broadcast({ type: 'trade', data: trade });
     });
+
+    // Balances
+    tradeExecutor.on('balance:update', (balances) => {
+        broadcast({ type: 'balance', data: balances });
+    });
 }
 
 async function fetchPiPrice() {
