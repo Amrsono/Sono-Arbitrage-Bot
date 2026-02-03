@@ -127,3 +127,13 @@ export class SonoArbitrageBot {
 }
 
 export default SonoArbitrageBot;
+
+// Allow running directly
+import { fileURLToPath } from 'url';
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    const bot = new SonoArbitrageBot();
+    bot.start().catch(err => {
+        console.error('Fatal error starting bot:', err);
+        process.exit(1);
+    });
+}

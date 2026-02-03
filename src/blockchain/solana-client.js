@@ -23,14 +23,22 @@ class SolanaClient {
             this.connection = new Connection(config.solana.rpcUrl, 'confirmed');
 
             // Initialize wallet if private key is provided
+            // Initialize wallet if private key is provided
             if (config.solana.privateKey) {
                 try {
                     const secretKey = bs58.decode(config.solana.privateKey);
                     this.wallet = Keypair.fromSecretKey(secretKey);
-                    logInfo('SOLANA', 'Wallet initialized (Read-Only/Active)');
+                    logInfo('SOLANA', 'Wallet initialized (Active Trading)');
                 } catch (error) {
                     logError('SOLANA', error, { context: 'wallet initialization' });
-                    // Don't crash entire bot if key is bad, just log
+                }
+            } else if (config.solana.walletAddress) {
+                try {
+                    // Read-only mode
+                    this.publicKey = new PublicKey(config.solana.walletAddress);
+                    logInfo('SOLANA', 'Wallet initialized (Read-Only Mode)');
+                } catch (error) {
+                    logError('SOLANA', error, { context: 'read-only wallet initialization' });
                 }
             }
 
@@ -52,7 +60,13 @@ class SolanaClient {
     async getJupiterPrice(inputMint, outputMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v') {
         try {
             // outputMint default is USDC on Solana
-            const amount = 1000000; // 1 token with 6 decimals
+            // Determine decimals based on input mint
+            // SOL has 9 decimals, most SPL tokens (USDC, USDT, etc) have 6
+            const SOL_MINT = 'So11111111111111111111111111111111111111112';
+            const inputDecimals = inputMint === SOL_MINT ? 9 : 6;
+            const outputDecimals = 6; // USDC has 6 decimals
+
+            const amount = Math.pow(10, inputDecimals); // 1 full token unit
 
             const response = await axios.get(
                 `${config.solana.dexes.jupiter.apiUrl}/quote`,
@@ -66,9 +80,11 @@ class SolanaClient {
                 }
             );
 
-            if (response.data && response.data.outAmount) {
-                // Calculate price: output amount / input amount
-                const price = response.data.outAmount / amount;
+            // Validate response format (Solaris/Cloudflare sometimes return HTML)
+            if (response.data && typeof response.data === 'object' && response.data.outAmount) {
+                // Calculate price: output amount (in human readable) / input amount (1 unit)
+                // Since we input exactly 1 unit, price is just output converted to human readable
+                const price = response.data.outAmount / Math.pow(10, outputDecimals);
                 return {
                     price,
                     source: 'jupiter',
@@ -79,10 +95,29 @@ class SolanaClient {
 
             throw new Error('Invalid response from Jupiter');
         } catch (error) {
-            if (error.response) {
-                logError('SOLANA', new Error(`Jupiter API error: ${error.response.status}`));
+            // Suppress verbose network errors (let caller handle warning)
+            // Suppress verbose network errors (let caller handle warning)
+            // Axios errors often have these codes
+            const code = error.code || (error.cause && error.cause.code);
+            const msg = error.message || error.toString();
+
+            const isNetworkError =
+                code === 'ENOTFOUND' ||
+                code === 'ETIMEDOUT' ||
+                code === 'ECONNREFUSED' ||
+                msg.includes('getaddrinfo') ||
+                msg.includes('ENOTFOUND') ||
+                msg.includes('timeout');
+
+            if (!isNetworkError) {
+                if (error.response) {
+                    logError('SOLANA', new Error(`Jupiter API error: ${error.response.status}`));
+                } else {
+                    logError('SOLANA', error, { context: 'Jupiter price fetch' });
+                }
             } else {
-                logError('SOLANA', error, { context: 'Jupiter price fetch' });
+                // For network errors, we just re-throw without spamming ERROR log
+                // The caller (SolanaMonitor) is already handling this with a WARN log
             }
             throw error;
         }
@@ -93,18 +128,20 @@ class SolanaClient {
      */
     async getBalance(tokenMint = null) {
         try {
-            if (!this.wallet) {
-                throw new Error('Wallet not initialized');
+            const targetKey = this.wallet ? this.wallet.publicKey : this.publicKey;
+
+            if (!targetKey) {
+                throw new Error('Wallet not initialized (No Private Key or Public Address)');
             }
 
             if (!tokenMint) {
                 // Get SOL balance
-                const balance = await this.connection.getBalance(this.wallet.publicKey);
+                const balance = await this.connection.getBalance(targetKey);
                 return balance / 1e9; // Convert lamports to SOL
             } else {
                 // Get SPL token balance
                 const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
-                    this.wallet.publicKey,
+                    targetKey,
                     { mint: new PublicKey(tokenMint) }
                 );
 

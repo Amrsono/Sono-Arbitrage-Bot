@@ -1,0 +1,59 @@
+commit e9c940fd6a0020a93d70432b3a85b3607b11d1b4
+Author: Amr Sono <amr@sonotrading.com>
+Date:   Tue Feb 3 05:13:46 2026 +0200
+
+    feat(dashboard): show skipped (low profit) opportunities to restore feed activity
+
+commit 53cf9f40e85396eb29621a02a61e9894efc1f36e
+Author: Amr Sono <amr@sonotrading.com>
+Date:   Tue Feb 3 05:09:32 2026 +0200
+
+    fix(wallet): allow wallet init in dry-run for balance fetching
+
+commit 946bda1ebbf39e6cb05f7b254330489ff49d196b
+Author: Amr Sono <amr@sonotrading.com>
+Date:   Tue Feb 3 05:01:51 2026 +0200
+
+    feat(dashboard): add wallet balance applet
+
+commit 6ac84c174c98abb9aa5893c055cb697f130465f6
+Author: Amr Sono <amr@sonotrading.com>
+Date:   Tue Feb 3 04:56:02 2026 +0200
+
+    fix(dashboard): re-add missing stop trading button
+
+commit add07f45e036bd4aa945e9d6e0808e1ffbf70e50
+Author: Amr Sono <amr@sonotrading.com>
+Date:   Tue Feb 3 04:52:00 2026 +0200
+
+    fix(dashboard): correct panel layout html structure
+
+commit a323f9e2df6ce0d7a7898f01cf39fcd5e7af5b52
+Author: Amr Sono <amr@sonotrading.com>
+Date:   Tue Feb 3 04:45:29 2026 +0200
+
+    fix(dashboard): remove undefined simulation calls
+
+commit 21e1fc75d2aa0a27c370b6a8b9b842f10adb8a8e
+Author: Amr Sono <amr@sonotrading.com>
+Date:   Tue Feb 3 04:40:47 2026 +0200
+
+    feat(dashboard): add live transaction history feed
+
+commit 35e9e3210e749aa79b58a613700fd459c9d89f64
+Author: Amr Sono <amr@sonotrading.com>
+Date:   Tue Feb 3 04:39:26 2026 +0200
+
+    feat(dashboard): add stop/resume button and integrate real trading bot
+
+commit c36e123a8279f4eb9b57324d49cdd140c982bac7
+Author: Amr Sono <amr@sonotrading.com>
+Date:   Tue Feb 3 02:41:13 2026 +0200
+
+    fix(dashboard): switch Solana price fetch to Binance due to Jupiter 401 error
+
+commit fbf7b274899e8e9c53f962e75698ff1823759d9b
+Author: Amr Sono <amr@sonotrading.com>
+Date:   Tue Feb 3 02:34:42 2026 +0200
+
+    feat(dashboard): add buy buttons linking to Binance, Phantom, and Pi Bridge

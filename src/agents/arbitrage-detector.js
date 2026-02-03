@@ -40,6 +40,7 @@ class ArbitrageDetectorAgent extends BaseAgent {
      * Handle price updates from monitoring agents
      */
     handlePriceUpdate(data) {
+        logInfo(this.name, 'Received price update', { chain: data.chain, price: data.price }); // DEBUG
         const { chain, price, timestamp } = data;
 
         // Update stored prices
@@ -52,6 +53,8 @@ class ArbitrageDetectorAgent extends BaseAgent {
         // Check for arbitrage opportunity if we have both prices
         if (this.solanaPrice && this.ethereumPrice) {
             this.checkArbitrageOpportunity();
+        } else {
+            logInfo(this.name, 'Waiting for other chain price...', { hasSolana: !!this.solanaPrice, hasEthereum: !!this.ethereumPrice }); // DEBUG
         }
     }
 
@@ -60,17 +63,44 @@ class ArbitrageDetectorAgent extends BaseAgent {
      */
     checkArbitrageOpportunity() {
         try {
+            logInfo(this.name, 'Checking for arbitrage...'); // DEBUG
             // Check if price data is fresh
             const now = Date.now();
             const staleThreshold = config.monitoring.staleDataThresholdMs;
 
             if (now - this.solanaPrice.timestamp > staleThreshold) {
-                logInfo(this.name, 'Solana price data is stale, skipping check');
+                const reason = 'Solana price data is stale';
+                logInfo(this.name, `${reason}, skipping check`);
+
+                // Emit skipped event to show we are at least trying
+                this.emit('arbitrage:skipped', {
+                    buyChain: 'solana', // dummy
+                    sellChain: 'ethereum', // dummy
+                    buyPrice: 0,
+                    sellPrice: 0,
+                    profitPercentage: 0,
+                    timestamp: now,
+                    skipped: true,
+                    reasons: [reason]
+                });
                 return;
             }
 
             if (now - this.ethereumPrice.timestamp > staleThreshold) {
-                logInfo(this.name, 'Ethereum price data is stale, skipping check');
+                const reason = 'Ethereum price data is stale';
+                logInfo(this.name, `${reason}, skipping check`);
+
+                // Emit skipped event to show we are at least trying
+                this.emit('arbitrage:skipped', {
+                    buyChain: 'ethereum', // dummy
+                    sellChain: 'solana', // dummy
+                    buyPrice: 0,
+                    sellPrice: 0,
+                    profitPercentage: 0,
+                    timestamp: now,
+                    skipped: true,
+                    reasons: [reason]
+                });
                 return;
             }
 

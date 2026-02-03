@@ -47,7 +47,6 @@ class BinanceClient {
     }
 
     async executeSpotOrder(symbol, side, quantity) {
-        if (!this.initialized) await this.initialize();
         if (config.dryRun) {
             logInfo('BINANCE', `[DRY_RUN] Would execute ${side} ${quantity} ${symbol}`);
             return {
@@ -57,6 +56,8 @@ class BinanceClient {
                 status: 'FILLED_DRY_RUN'
             };
         }
+
+        if (!this.initialized) await this.initialize();
 
         try {
             const timestamp = Date.now();
@@ -101,6 +102,47 @@ class BinanceClient {
             logError('BINANCE', error, { context: 'getPrice' });
             return null;
         }
+    }
+
+    async getAccountBalance(asset) {
+        // Try to initialize if keys are present, even in Dry Run
+        if (!this.initialized && this.apiKey && this.privateKeyPath) {
+            try { await this.initialize(); } catch (e) { /* ignore in dry run */ }
+        }
+
+        // If initialized (keys valid), try to fetch REAL balance
+        if (this.initialized) {
+            try {
+                const timestamp = Date.now();
+                const params = new URLSearchParams();
+                params.append('timestamp', timestamp);
+                const signature = this.sign(params.toString());
+                params.append('signature', signature);
+
+                const response = await axios.get(`${this.baseUrl}/api/v3/account`, {
+                    headers: { 'X-MBX-APIKEY': this.apiKey },
+                    params: params
+                });
+
+                const balances = response.data.balances;
+                const assetBalance = balances.find(b => b.asset === asset);
+                return assetBalance ? assetBalance.free : '0.0000';
+            } catch (error) {
+                // Fall through to mock if real fetch fails in dry run
+                if (!config.dryRun) {
+                    logError('BINANCE', error, { context: 'getAccountBalance' });
+                    return '0.0000';
+                }
+            }
+        }
+
+        if (config.dryRun) {
+            // Return fake balance ONLY if we couldn't get real one
+            // logInfo('BINANCE', `[DRY_RUN] Using mock balance for ${asset}`);
+            return '10.0000';
+        }
+
+        return '0.0000';
     }
 }
 

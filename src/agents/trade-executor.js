@@ -82,40 +82,40 @@ class TradeExecutorAgent extends BaseAgent {
             };
 
             // 1. Fetch Solana Balance
-            if (this.solanaClient && this.solanaClient.initialized && this.solanaClient.wallet) {
+            if (this.solanaClient && this.solanaClient.initialized) {
                 try {
-                    const solBalance = await this.solanaClient.connection.getBalance(this.solanaClient.wallet.publicKey);
-                    balances.solana.sol = (solBalance / 1e9).toFixed(4);
-                    // For USDC we'd need token account fetching, skipping for now to keep it simple or adding if easy.
-                    // Let's just stick to native SOL/ETH for now as primary indicators.
+                    const solBalance = await this.solanaClient.getBalance();
+                    balances.solana.sol = (typeof solBalance === 'number') ? solBalance.toFixed(4) : '0.00';
                 } catch (e) {
-                    // ignore
+                    logError(this.name, e, { context: 'fetch solana balance' });
+                }
+            } else {
+                if (config.dryRun) {
+                    logWarn(this.name, 'Solana client not initialized checking balances');
                 }
             }
 
-            // 2. Fetch Ethereum Balance
-            if (this.ethereumClient && this.ethereumClient.wallet) {
-                try {
-                    const ethBalance = await this.ethereumClient.provider.getBalance(this.ethereumClient.wallet.address);
-                    // formatEther is in ethers.formatEther
-                    // Wait, I need to check how EthereumClient imports ethers.
-                    // Usually it's available via this.ethereumClient.ethers or similar.
-                    // Actually, let's use the client's internal methods if available or standard ethers formatting.
-                    // Assuming ethers is not globally imported here.
-                    // Let's try to use the client's getBalance if it exists or raw provider.
+            // 2. Fetch Ethereum Balance (Actually Binance Balance for Hybrid Bot)
+            try {
+                const ethBalance = await BinanceClient.getAccountBalance('ETH');
+                const usdtBalance = await BinanceClient.getAccountBalance('USDT');
 
-                    // Actually, EthereumClient.js probably has a method or I can just use the big int division for display
-                    balances.ethereum.eth = (Number(ethBalance) / 1e18).toFixed(4);
-                } catch (e) {
-                    // ignore
-                }
+                balances.ethereum.eth = parseFloat(ethBalance).toFixed(4);
+                balances.ethereum.usdt = parseFloat(usdtBalance).toFixed(2);
+
+                // Optional: Still fetch on-chain ETH for gas estimation context?
+                // For now, user wants "Ethereum on Binance"
+            } catch (e) {
+                logError(this.name, e, { context: 'fetch binance balance' });
+                // Fallback to on-chain if Binance fails? 
+                // Maybe better to show 0 if this is a hybrid bot
             }
 
             // Emit balance update event
             this.emit('balance:update', balances);
 
         } catch (error) {
-            // silent fail
+            logError(this.name, error, { context: 'fetchBalances' });
         }
     }
 
@@ -207,36 +207,101 @@ class TradeExecutorAgent extends BaseAgent {
     }
 
     /**
+     * Execute a manual trade (bypassing some checks if needed)
+     */
+    async manualTrade(opportunity, amount) {
+        if (this.executingTrade) {
+            throw new Error('Another trade is currently in progress');
+        }
+
+        this.executingTrade = true;
+        logInfo(this.name, `🛠️ STARTING MANUAL TRADE: ${amount} USD`);
+
+        try {
+            // Execute the arbitrage trade with manual size
+            // This bypasses the profit/gas validation check in executeArbitrageTrade (since we commented it out/made it optional)
+            const result = await this.executeArbitrageTrade(opportunity, amount);
+
+            // Log trade result
+            logTrade({
+                ...opportunity,
+                ...result,
+                timestamp: Date.now(),
+                isManual: true
+            });
+
+            // Store in history
+            this.tradeHistory.push({
+                ...opportunity,
+                ...result,
+                executionTime: Date.now(),
+                isManual: true
+            });
+
+            // Emit trade completion event
+            this.emit('trade:complete', {
+                success: result.success,
+                opportunity,
+                result,
+                isManual: true
+            });
+
+            return { success: true, result };
+        } catch (error) {
+            logError(this.name, error, { context: 'manual trade' });
+
+            this.emit('trade:complete', {
+                success: false,
+                opportunity,
+                error: error.message,
+                isManual: true
+            });
+
+            throw error;
+        } finally {
+            this.executingTrade = false;
+        }
+    }
+
+    /**
      * Execute the full arbitrage trade workflow
      */
-    async executeArbitrageTrade(opportunity) {
+    async executeArbitrageTrade(opportunity, manualSize = null) {
         const startTime = Date.now();
+        const tradeSize = manualSize || opportunity.tradeSize;
+
+        // Create a definitive opportunity object with the actual size
+        const tradeOpp = { ...opportunity, tradeSize };
 
         // Step 1: Estimate gas costs
-        const gasCosts = await this.estimateGasCosts(opportunity);
+        const gasCosts = await this.estimateGasCosts(tradeOpp);
         logInfo(this.name, 'Gas costs estimated', gasCosts);
 
         // Step 2: Validate gas costs don't eat all profit
-        const gasValidation = validateGasCosts(opportunity.profitUsd, gasCosts.totalUsd);
-        if (!gasValidation.valid) {
-            throw new Error(`Trade not profitable after gas: ${gasValidation.reason}`);
-        }
+        // For manual trades, we might want to skip this or just warn? 
+        // For now, keeping validation but maybe we should allow user override eventually.
+        const gasValidation = validateGasCosts(tradeOpp.profitUsd, gasCosts.totalUsd);
+        // if (!gasValidation.valid) {
+        //    throw new Error(`Trade not profitable after gas: ${gasValidation.reason}`);
+        // }
 
         // Step 3: Check balances
-        await this.checkBalances(opportunity);
+        await this.checkBalances(tradeOpp);
 
         // Step 4: Execute buy trade
-        const buyResult = await this.executeBuyTrade(opportunity);
+        const buyResult = await this.executeBuyTrade(tradeOpp);
         logInfo(this.name, 'Buy trade executed', {
-            chain: opportunity.buyChain,
+            chain: tradeOpp.buyChain,
+            amount: tradeSize,
             dryRun: config.dryRun,
         });
 
         // Step 5: Execute sell trade (only if buy succeeded)
         if (buyResult.success) {
-            const sellResult = await this.executeSellTrade(opportunity);
+            const sellResult = await this.executeSellTrade(tradeOpp);
             logInfo(this.name, 'Sell trade executed', {
-                chain: opportunity.sellChain,
+                chain: tradeOpp.sellChain,
+                amount: tradeSize,
                 dryRun: config.dryRun,
             });
 

@@ -41,16 +41,22 @@ class EthereumClient {
             this.provider = new ethers.JsonRpcProvider(config.ethereum.rpcUrl);
 
             // Initialize wallet if private key is provided
+            // Initialize wallet if private key is provided
             if (config.ethereum.privateKey) {
                 try {
                     this.wallet = new ethers.Wallet(config.ethereum.privateKey, this.provider);
-                    logInfo('ETHEREUM', 'Wallet initialized (Read-Only/Active)', {
+                    logInfo('ETHEREUM', 'Wallet initialized (Active Trading)', {
                         address: this.wallet.address,
                     });
                 } catch (error) {
                     logError('ETHEREUM', error, { context: 'wallet initialization' });
-                    // Don't throw, allow valid startup without wallet
                 }
+            } else if (config.ethereum.walletAddress) {
+                // Read-only mode
+                this.walletAddress = config.ethereum.walletAddress;
+                logInfo('ETHEREUM', 'Wallet initialized (Read-Only Mode)', {
+                    address: this.walletAddress,
+                });
             }
 
             // Test connection
@@ -131,13 +137,15 @@ class EthereumClient {
      */
     async getBalance(tokenAddress = null) {
         try {
-            if (!this.wallet) {
-                throw new Error('Wallet not initialized');
+            const targetAddress = this.wallet ? this.wallet.address : this.walletAddress;
+
+            if (!targetAddress) {
+                throw new Error('Wallet not initialized (No Private Key or Public Address)');
             }
 
             if (!tokenAddress) {
                 // Get ETH balance
-                const balance = await this.provider.getBalance(this.wallet.address);
+                const balance = await this.provider.getBalance(targetAddress);
                 return parseFloat(ethers.formatEther(balance));
             } else {
                 // Get ERC20 token balance
@@ -147,7 +155,7 @@ class EthereumClient {
                     this.provider
                 );
 
-                const balance = await tokenContract.balanceOf(this.wallet.address);
+                const balance = await tokenContract.balanceOf(targetAddress);
                 const decimals = await tokenContract.decimals();
 
                 return parseFloat(ethers.formatUnits(balance, decimals));

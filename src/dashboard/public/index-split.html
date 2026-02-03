@@ -800,37 +800,119 @@
 
             const item = document.createElement('div');
             item.className = 'token-item';
-            item.style.borderLeftColor = '#10b981';
-            item.innerHTML = `
-                <div style="font-size: 0.85rem;">
-                    <strong>Buy ${getSymbol(opp.buyChain)} on ${opp.buyChain.toUpperCase()}</strong> @ $${opp.buyPrice.toFixed(2)}
-                    → <strong>Sell ${getSymbol(opp.buyChain)} on ${opp.sellChain.toUpperCase()}</strong> @ $${opp.sellPrice.toFixed(2)}
-                    <span class="sentiment-badge sentiment-positive">+${opp.profitPercentage.toFixed(2)}%</span>
-                </div>
-                <div style="margin-top: 5px;">
-                    <a href="${opp.tradeLink || '#'}" target="_blank" style="
+
+            if (opp.skipped) {
+                item.style.borderLeft = '4px solid #6b7280'; // Gray for skipped
+                item.style.opacity = '0.7';
+            } else {
+                item.style.borderLeft = '4px solid #3b82f6'; // Blue for active
+            }
+
+            const buyIcon = opp.buyChain === 'solana' ? '⚡' : '💎';
+            const sellIcon = opp.sellChain === 'solana' ? '⚡' : '💎';
+
+            let actionHtml = '';
+            if (opp.skipped) {
+                actionHtml = `<span style="color: #9ca3af; font-size: 0.8rem;">⚠️ Low Profit: ${(opp.profitPercentage || 0).toFixed(2)}%</span>`;
+            } else {
+                // Store opportunity data in a safe way for the button click
+                const oppString = encodeURIComponent(JSON.stringify(opp));
+                actionHtml = `
+                    <button onclick="grabOpportunity('${oppString}')" style="
                         display: inline-block;
-                        padding: 4px 12px;
+                        padding: 6px 16px;
                         background: linear-gradient(135deg, #10b981 0%, #059669 100%);
                         color: white;
-                        text-decoration: none;
-                        border-radius: 4px;
-                        font-size: 0.75rem;
+                        border: none;
+                        cursor: pointer;
+                        border-radius: 6px;
+                        font-size: 0.85rem;
                         font-weight: bold;
-                        transition: transform 0.2s;
+                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                        transition: all 0.2s;
                     " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        Buy on ${opp.platformName || 'Exchange'}
-                    </a>
-                    <span class="timestamp" style="margin-left: 8px;">${new Date(opp.timestamp).toLocaleTimeString()}</span>
+                        Grab Opportunity 🚀
+                    </button>
+                `;
+            }
+
+            item.innerHTML = `
+                <div class="token-header">
+                    <span class="token-name">${buyIcon} ${opp.buyChain.toUpperCase()} ➔ ${sellIcon} ${opp.sellChain.toUpperCase()}</span>
+                    <span class="sentiment-badge ${opp.skipped ? 'sentiment-neutral' : 'sentiment-positive'}">
+                        ${opp.skipped ? 'SKIPPED' : 'ACTIVE'}
+                    </span>
+                </div>
+                <div class="token-metrics">
+                    <div class="metric">
+                        <span>Buy</span>
+                        <span class="metric-value">$${opp.buyPrice.toFixed(2)}</span>
+                    </div>
+                    <div class="metric">
+                        <span>Sell</span>
+                        <span class="metric-value">$${opp.sellPrice.toFixed(2)}</span>
+                    </div>
+                    <div class="metric">
+                        <span>Profit</span>
+                        <span class="metric-value" style="color: ${opp.skipped ? '#9ca3af' : '#10b981'}">
+                            ${opp.profitPercentage.toFixed(2)}%
+                        </span>
+                    </div>
+                </div>
+                <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <span class="timestamp">${new Date(opp.timestamp).toLocaleTimeString()}</span>
+                    ${actionHtml}
                 </div>
             `;
 
             list.insertBefore(item, list.firstChild);
-            if (list.children.length > 5) list.lastChild.remove();
+            if (list.children.length > 50) list.lastChild.remove();
 
             // Update stats
-            const currentCount = parseInt(document.getElementById('stat-opportunities').textContent);
-            document.getElementById('stat-opportunities').textContent = currentCount + 1;
+            if (!opp.skipped) {
+                const currentCount = parseInt(document.getElementById('stat-opportunities').textContent || '0');
+                document.getElementById('stat-opportunities').textContent = currentCount + 1;
+            }
+        }
+
+        async function grabOpportunity(oppString) {
+            try {
+                const opp = JSON.parse(decodeURIComponent(oppString));
+
+                // Ask for amount
+                const defaultAmount = opp.tradeSize || 100;
+                const amountStr = prompt(`Enter trade amount in USD to execute this arbitrage:\n\n${opp.buyChain.toUpperCase()} ➔ ${opp.sellChain.toUpperCase()}\nEstimated Profit: ${opp.profitPercentage.toFixed(2)}%`, defaultAmount);
+
+                if (amountStr === null) return; // User cancelled
+
+                const amount = parseFloat(amountStr);
+                if (isNaN(amount) || amount <= 0) {
+                    alert('Invalid amount entered.');
+                    return;
+                }
+
+                // Send request
+                const response = await fetch('/api/bot/trade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        opportunity: opp,
+                        amount: amount
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ Trade Executed Successfully!\n\nNet Profit: $${result.result.netProfit ? result.result.netProfit.toFixed(2) : '0.00'}`);
+                } else {
+                    alert(`❌ Trade Failed: ${result.message}`);
+                }
+
+            } catch (error) {
+                console.error('Error grabbing opportunity:', error);
+                alert('Error processing trade request: ' + error.message);
+            }
         }
 
         function updateSentiment(data) {

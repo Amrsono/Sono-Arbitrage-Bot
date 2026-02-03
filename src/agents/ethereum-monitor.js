@@ -1,6 +1,7 @@
 import BaseAgent from '../core/base-agent.js';
 import EthereumClient from '../blockchain/ethereum-client.js';
 import config from '../config/config.js';
+import binanceClient from '../exchanges/binance-client.js';
 import { logInfo, logError, logPrice } from '../utils/logger.js';
 import { validatePrice } from '../utils/validator.js';
 
@@ -88,6 +89,23 @@ class EthereumMonitorAgent extends BaseAgent {
                 } catch (error) {
                     // Log but don't stop monitoring
                     logError(this.name, error, { dex: 'Uniswap' });
+
+                    // Try fallback: Binance
+                    try {
+                        const binancePrice = await binanceClient.getPrice('ETHUSDC'); // Binance uses ETHUSDC or ETHUSDT
+                        if (binancePrice) {
+                            prices.push({
+                                price: binancePrice,
+                                source: 'binance',
+                                dex: 'binance',
+                                timestamp: Date.now(),
+                                metadata: { fallback: true }
+                            });
+                            logPrice('ETHEREUM', binancePrice, 'Binance (fallback)');
+                        }
+                    } catch (binanceError) {
+                        logError(this.name, binanceError, { dex: 'Binance fallback' });
+                    }
                 }
             }
 

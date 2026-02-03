@@ -80,7 +80,18 @@ class BaseAgent {
         }
 
         // All retries failed
-        logError(this.name, lastError, { context, retriesFailed: this.retryAttempts });
+        // All retries failed
+        const isNetworkError = lastError && (
+            lastError.code === 'ENOTFOUND' ||
+            lastError.code === 'ETIMEDOUT' ||
+            (lastError.message && lastError.message.includes('getaddrinfo'))
+        );
+
+        if (isNetworkError) {
+            logInfo(this.name, `Operation failed after retries (Network Error): ${lastError.message}`);
+        } else {
+            logError(this.name, lastError, { context, retriesFailed: this.retryAttempts });
+        }
         throw lastError;
     }
 

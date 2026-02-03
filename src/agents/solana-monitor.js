@@ -1,7 +1,8 @@
 import BaseAgent from '../core/base-agent.js';
 import SolanaClient from '../blockchain/solana-client.js';
 import config from '../config/config.js';
-import { logInfo, logError, logPrice } from '../utils/logger.js';
+import binanceClient from '../exchanges/binance-client.js';
+import { logInfo, logError, logPrice, logWarn } from '../utils/logger.js';
 import { validatePrice } from '../utils/validator.js';
 
 /**
@@ -86,8 +87,24 @@ class SolanaMonitorAgent extends BaseAgent {
                         logPrice('SOLANA', jupiterPrice.price, 'Jupiter');
                     }
                 } catch (error) {
-                    // Log but don't stop monitoring
-                    logError(this.name, error, { dex: 'Jupiter' });
+                    // Suppress verbose network errors
+                    const code = error.code || (error.cause && error.cause.code);
+                    const msg = error.message || error.toString();
+
+                    const isNetworkError =
+                        code === 'ENOTFOUND' ||
+                        code === 'ETIMEDOUT' ||
+                        code === 'ECONNREFUSED' ||
+                        msg.includes('getaddrinfo') ||
+                        msg.includes('ENOTFOUND') ||
+                        msg.includes('timeout') ||
+                        msg.includes('429');
+
+                    if (isNetworkError) {
+                        logWarn(this.name, `Network Error: Could not reach Jupiter API (${msg})`);
+                    } else {
+                        logError(this.name, error || new Error('Unknown error'), { dex: 'Jupiter' });
+                    }
 
                     // Try fallback: CoinGecko API
                     try {
@@ -97,7 +114,28 @@ class SolanaMonitorAgent extends BaseAgent {
                             logPrice('SOLANA', fallbackPrice.price, 'CoinGecko (fallback)');
                         }
                     } catch (fallbackError) {
-                        logError(this.name, fallbackError, { dex: 'CoinGecko fallback' });
+                        if (fallbackError.code === 'ENOTFOUND') {
+                            logWarn(this.name, 'Network Error: Could not reach CoinGecko fallback');
+                        } else {
+                            logError(this.name, fallbackError, { dex: 'CoinGecko fallback' });
+                        }
+
+                        // Try fallback: Binance
+                        try {
+                            const binancePrice = await binanceClient.getPrice('SOLUSDC');
+                            if (binancePrice) {
+                                prices.push({
+                                    price: binancePrice,
+                                    source: 'binance',
+                                    dex: 'binance',
+                                    timestamp: Date.now(),
+                                    metadata: { fallback: true }
+                                });
+                                logPrice('SOLANA', binancePrice, 'Binance (fallback)');
+                            }
+                        } catch (binanceError) {
+                            logError(this.name, binanceError, { dex: 'Binance fallback' });
+                        }
                     }
                 }
             }
@@ -142,7 +180,17 @@ class SolanaMonitorAgent extends BaseAgent {
             }
 
             return null;
+            return null;
         } catch (error) {
+            // Suppress 429 Rate Limit errors
+            if (error.response && error.response.status === 429) {
+                logWarn(this.name, 'CoinGecko Rate Limit (429) - skipping fallback');
+                return null;
+            }
+            if (error.code === 'ENOTFOUND') {
+                logWarn(this.name, 'CoinGecko Network Error - skipping fallback');
+                return null;
+            }
             logError(this.name, error, { context: 'CoinGecko fallback' });
             throw error;
         }
@@ -152,28 +200,10 @@ class SolanaMonitorAgent extends BaseAgent {
      * Fetch price from Jupiter
      */
     async fetchJupiterPrice() {
-        try {
-            if (!config.solana.tokenMint) {
-                // If no token is configured, use SOL as example
-                const SOL_MINT = 'So11111111111111111111111111111111111111112';
-                const result = await this.client.getJupiterPrice(SOL_MINT);
-
-                return {
-                    price: result.price,
-                    source: 'jupiter',
-                    dex: 'jupiter',
-                    timestamp: Date.now(),
-                    metadata: {
-                        route: result.route,
-                        impact: result.impact,
-                    },
-                };
-            }
-
-            const result = await this.client.getJupiterPrice(config.solana.tokenMint);
-
-            // Validate price
-            validatePrice(result.price, 'Jupiter');
+        if (!config.solana.tokenMint) {
+            // If no token is configured, use SOL as example
+            const SOL_MINT = 'So11111111111111111111111111111111111111112';
+            const result = await this.client.getJupiterPrice(SOL_MINT);
 
             return {
                 price: result.price,
@@ -185,10 +215,23 @@ class SolanaMonitorAgent extends BaseAgent {
                     impact: result.impact,
                 },
             };
-        } catch (error) {
-            logError(this.name, error, { context: 'Jupiter price fetch' });
-            throw error;
         }
+
+        const result = await this.client.getJupiterPrice(config.solana.tokenMint);
+
+        // Validate price
+        validatePrice(result.price, 'Jupiter');
+
+        return {
+            price: result.price,
+            source: 'jupiter',
+            dex: 'jupiter',
+            timestamp: Date.now(),
+            metadata: {
+                route: result.route,
+                impact: result.impact,
+            },
+        };
     }
 
     /**

@@ -95,6 +95,23 @@ app.post('/api/bot/resume', (req, res) => {
     res.json({ success: true, message: 'Trading resumed' });
 });
 
+app.post('/api/bot/trade', async (req, res) => {
+    const { opportunity, amount } = req.body;
+
+    if (!opportunity || !amount) {
+        return res.status(400).json({ success: false, message: 'Missing opportunity or amount' });
+    }
+
+    try {
+        console.log(`📥 Received Manual Trade Request: $${amount}`);
+        const result = await bot.agents.tradeExecutor.manualTrade(opportunity, parseFloat(amount));
+        res.json({ success: true, result });
+    } catch (error) {
+        console.error('❌ Manual Trade Failed:', error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 app.get('/api/bot/status', (req, res) => {
     res.json({
         running: botState.running,
@@ -197,10 +214,50 @@ async function startServer() {
         setInterval(fetchPiPrice, 60000);
         fetchPiPrice();
 
-        app.listen(PORT, () => {
-            console.log(`🚀 Dashboard Server running on http://localhost:${PORT}`);
-            console.log(`🤖 Trading Bot is ACTIVE (Paused: ${botState.isPaused})`);
-        });
+        // Binance Connectivity Check
+        const checkBinance = async () => {
+            try {
+                const axios = (await import('axios')).default;
+                const res = await axios.get('https://api.binance.com/api/v3/ping');
+                if (res.status === 200) {
+                    // console.log('✅ Binance API is reachable');
+                }
+            } catch (e) {
+                console.log('⚠️  Binance API Unreachable:', e.message);
+            }
+        };
+        setInterval(checkBinance, 60000);
+        checkBinance();
+
+        const startListener = (retryPort) => {
+            try {
+                server = app.listen(retryPort, () => {
+                    console.log(`\n🎨 ========================================`);
+                    console.log(`📊 Sono Trading Suite - Dashboard Server`);
+                    console.log(`🌐 URL: http://localhost:${retryPort}`);
+                    console.log(`🤖 Trading Bot is ACTIVE (Paused: ${botState.isPaused})`);
+                    console.log(`========================================\n`);
+                }).on('error', (err) => {
+                    if (err.code === 'EADDRINUSE') {
+                        console.log(`⚠️  Port ${retryPort} is busy, trying ${retryPort + 1}...`);
+                        startListener(retryPort + 1);
+                    } else {
+                        console.error('Failed to start server:', err);
+                    }
+                });
+
+                // Handle WebSocket upgrade
+                server.on('upgrade', (request, socket, head) => {
+                    wss.handleUpgrade(request, socket, head, (ws) => {
+                        wss.emit('connection', ws, request);
+                    });
+                });
+            } catch (err) {
+                console.error('Failed to start server:', err);
+            }
+        };
+
+        startListener(PORT);
     } catch (err) {
         console.error('Failed to start bot/server:', err);
     }
@@ -411,24 +468,29 @@ app.get('/single', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
-const server = app.listen(PORT, () => {
-    console.log(`\n🎨 ========================================`);
-    console.log(`📊 Sono Trading Suite - Dashboard Server`);
-    console.log(`🌐 URL: http://localhost:${PORT}`);
-    console.log(`📱 Split View (Arbitrage + Sentiment)`);
-    console.log(`🎮 Running with simulated data`);
-    console.log(`========================================\n`);
-});
+// Start server via startServer function
+startServer();
 
 // Handle WebSocket upgrade
-server.on('upgrade', (request, socket, head) => {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
-    });
-});
+// Note: We need to access the server instance which is created inside startServer.
+// We'll modify startServer to assign to a global variable or handle upgrade there.
+// For now, let's move the upgrade handler INTO startServer or expose 'server'.
+
+// Actually, let's just make 'server' global or accessible.
+let server;
 
 // Cleanup on exit
+if (process.platform === 'win32') {
+    const rl = (await import('readline')).createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    rl.on('SIGINT', () => {
+        process.emit('SIGINT');
+    });
+}
+
 process.on('SIGINT', () => {
     if (logWatcher) {
         logWatcher.close();

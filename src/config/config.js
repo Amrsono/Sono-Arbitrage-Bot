@@ -18,7 +18,7 @@ const config = {
     dexes: {
       jupiter: {
         enabled: true,
-        apiUrl: 'https://quote-api.jup.ag/v6',
+        apiUrl: 'https://public.jupiterapi.com',
       },
       raydium: {
         enabled: true,
