@@ -6,6 +6,7 @@ const config = {
   // Execution mode
   dryRun: process.env.DRY_RUN === 'true',
 
+
   // Solana configuration
   solana: {
     rpcUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
@@ -113,5 +114,6 @@ function validateConfig() {
 }
 
 validateConfig();
+console.log('DEBUG: Config loaded, dryRun:', config.dryRun);
 
 export default config;

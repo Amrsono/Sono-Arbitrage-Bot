@@ -1,0 +1,47 @@
+{
+  "buyChain": "solana",
+  "sellChain": "ethereum",
+  "buyPrice": 0.102949,
+  "sellPrice": 2297.809997,
+  "buyDex": "jupiter",
+  "sellDex": "uniswap-v3",
+  "profitPercentage": 2231888.6516624736,
+  "priceDiff": 2297.7070479999998,
+  "tradeSize": 1000,
+  "profitUsd": 22318886.516624734,
+  "timestamp": 1770125976598,
+  "source": "ARBITRAGE_DETECTOR",
+  "tradeLink": "https://phantom.app/",
+  "platformName": "Phantom",
+  "success": true,
+  "buyResult": {
+    "success": true,
+    "dryRun": true,
+    "signature": "dry-run-signature"
+  },
+  "sellResult": {
+    "base": "ETH",
+    "quote": "USDT",
+    "amount": 9713.54748467688,
+    "symbol": "ETHUSDT",
+    "orderId": "dry-run-id",
+    "transactTime": 1770125976598,
+    "status": "FILLED_DRY_RUN"
+  },
+  "gasCosts": {
+    "buy": {
+      "chain": "solana",
+      "gasCostNative": 0.00001,
+      "gasCostUsd": 0.00000102946
+    },
+    "sell": {
+      "chain": "ethereum",
+      "gasCostNative": 0.00003326796216,
+      "gasCostUsd": 0.07644345603106571
+    },
+    "totalUsd": 0.07644448549106571
+  },
+  "netProfit": 22318886.44018025,
+  "executionTimeMs": 2281,
+  "dryRun": true
+}

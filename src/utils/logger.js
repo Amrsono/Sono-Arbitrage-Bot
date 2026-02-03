@@ -128,7 +128,7 @@ export function logArbitrage(opportunity) {
 }
 
 export function logPrice(chain, price, dex) {
-    logger.debug(`Price update: ${price}`, { agent: chain.toUpperCase(), dex });
+    logger.info(`Price updated: $${price}`, { agent: chain.toUpperCase(), dex });
 }
 
 export function logError(agent, error, context = {}) {

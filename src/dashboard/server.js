@@ -33,7 +33,7 @@ const botState = {
             dex: 'Binance',
             timestamp: Date.now(),
         },
-        solana: { price: 103.00, dex: 'Binance', timestamp: Date.now() },
+
         ethereum: { price: 2345.89, dex: 'Binance', timestamp: Date.now() },
         pi: { price: 0.159, dex: 'CoinGecko (IOU)', timestamp: Date.now() },
     },
@@ -130,9 +130,12 @@ function syncBotEvents() {
 
     // Solana Price
     solMonitor.on('price:update', (data) => {
+        // Strict Chain Check: Prevent processing Ethereum events (Shared Event Bus)
+        if (data.chain !== 'solana') return;
+
         botState.prices.solana = {
             price: data.price,
-            dex: 'Binance',
+            dex: data.dex || 'Jupiter', // Use actual DEX
             timestamp: Date.now()
         };
         broadcast({ type: 'price', chain: 'solana', data: botState.prices.solana });
@@ -140,9 +143,12 @@ function syncBotEvents() {
 
     // Ethereum Price
     ethMonitor.on('price:update', (data) => {
+        // Strict Chain Check: Prevent processing Solana events (Shared Event Bus)
+        if (data.chain !== 'ethereum') return;
+
         botState.prices.ethereum = {
             price: data.price,
-            dex: 'Binance',
+            dex: data.dex || 'Uniswap V3', // Use actual DEX
             timestamp: Date.now()
         };
         broadcast({ type: 'price', chain: 'ethereum', data: botState.prices.ethereum });
@@ -287,22 +293,29 @@ try {
                         if (log.level === 'info' && log.message && log.message.includes('Price updated')) {
                             const priceMatch = log.message.match(/\$([0-9.]+)/);
                             if (priceMatch && log.agent) {
-                                const chain = log.agent === 'SOLANA_MONITOR' ? 'solana' : 'ethereum';
-                                const dex = log.dex || (chain === 'solana' ? 'jupiter' : 'uniswap-v3');
+                                if (priceMatch && log.agent) {
+                                    let chain = null;
+                                    if (log.agent === 'SOLANA_MONITOR') chain = 'solana';
+                                    else if (log.agent === 'ETHEREUM_MONITOR') chain = 'ethereum';
 
-                                botState.prices[chain] = {
-                                    price: parseFloat(priceMatch[1]),
-                                    dex: dex,
-                                    timestamp: new Date(log.timestamp).getTime(),
-                                };
+                                    if (chain) {
+                                        const dex = log.dex || (chain === 'solana' ? 'jupiter' : 'uniswap-v3');
 
-                                botState.running = true;
+                                        botState.prices[chain] = {
+                                            price: parseFloat(priceMatch[1]),
+                                            dex: dex,
+                                            timestamp: new Date(log.timestamp).getTime(),
+                                        };
 
-                                broadcast({
-                                    type: 'price',
-                                    chain: chain,
-                                    data: botState.prices[chain],
-                                });
+                                        botState.running = true;
+
+                                        broadcast({
+                                            type: 'price',
+                                            chain: chain,
+                                            data: botState.prices[chain],
+                                        });
+                                    }
+                                }
                             }
                         }
 
@@ -338,22 +351,33 @@ try {
                                 if (log.level === 'info' && log.message && log.message.includes('Price updated')) {
                                     const priceMatch = log.message.match(/\$([0-9.]+)/);
                                     if (priceMatch && log.agent) {
-                                        const chain = log.agent === 'SOLANA_MONITOR' ? 'solana' : 'ethereum';
-                                        const dex = log.dex || (chain === 'solana' ? 'jupiter' : 'uniswap-v3');
+                                        let chain = null;
+                                        // DEBUG LOGGING
+                                        console.log(`[DEBUG_WATCHER] Agent: ${log.agent}, Price: ${priceMatch[1]}`);
 
-                                        botState.prices[chain] = {
-                                            price: parseFloat(priceMatch[1]),
-                                            dex: dex,
-                                            timestamp: new Date(log.timestamp).getTime(),
-                                        };
+                                        // Normalize agent names
+                                        let normalizedAgent = log.agent.toUpperCase();
+                                        if (normalizedAgent === 'SOLANA_MONITOR' || normalizedAgent === 'SOLANA') {
+                                            chain = 'solana';
+                                        } else if (normalizedAgent === 'ETHEREUM_MONITOR' || normalizedAgent === 'ETHEREUM') {
+                                            chain = 'ethereum';
+                                        }
 
-                                        botState.running = true;
+                                        if (chain) {
+                                            const dex = log.dex || (chain === 'solana' ? 'jupiter' : 'uniswap-v3');
 
-                                        broadcast({
-                                            type: 'price',
-                                            chain: chain,
-                                            data: botState.prices[chain],
-                                        });
+                                            // Only update internal state, DO NOT BROADCAST from watcher to avoid race conditions
+                                            botState.prices[chain] = {
+                                                price: parseFloat(priceMatch[1]),
+                                                dex: dex,
+                                                timestamp: new Date(log.timestamp).getTime(),
+                                            };
+
+                                            botState.running = true;
+
+                                            // LOG WATCHER IS NOW SILENT FOR LIVE UPDATES
+                                            // We rely on syncBotEvents() for live data
+                                        }
                                     }
                                 }
                             } catch (e) {

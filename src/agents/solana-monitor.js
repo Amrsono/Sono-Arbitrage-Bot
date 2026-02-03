@@ -271,9 +271,7 @@ class SolanaMonitorAgent extends BaseAgent {
             metadata: priceData.metadata,
         });
 
-        logInfo(this.name, `Price updated: $${priceData.price.toFixed(6)}`, {
-            dex: priceData.dex,
-        });
+        logPrice('SOLANA', priceData.price, priceData.dex);
     }
 
     /**

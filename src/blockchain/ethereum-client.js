@@ -49,7 +49,9 @@ class EthereumClient {
                         address: this.wallet.address,
                     });
                 } catch (error) {
-                    logError('ETHEREUM', error, { context: 'wallet initialization' });
+                    // Log warning but allow initialization to continue in Read-Only mode
+                    logError('ETHEREUM', new Error(`Invalid Private Key - Falling back to Read-Only Mode: ${error.message}`), { context: 'wallet initialization' });
+                    this.wallet = null;
                 }
             } else if (config.ethereum.walletAddress) {
                 // Read-only mode
