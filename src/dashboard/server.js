@@ -28,8 +28,8 @@ const botState = {
     },
     prices: {
         solana: {
-            price: 145.67,
-            dex: 'jupiter',
+            price: 103.00,
+            dex: 'Binance',
             timestamp: Date.now(),
         },
         ethereum: {
@@ -209,24 +209,23 @@ async function fetchPrices() {
         console.error('Error fetching ETH from Binance:', error.message);
     }
 
-    // 2. Solana from Jupiter
+    // 2. Solana from Binance
     try {
-        const solResponse = await axios.get('https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112', {
+        const solResponse = await axios.get('https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT', {
             headers: { 'User-Agent': userAgent }
         });
 
-        if (solResponse.data && solResponse.data.data && solResponse.data.data['So11111111111111111111111111111111111111112']) {
-            const solData = solResponse.data.data['So11111111111111111111111111111111111111112'];
+        if (solResponse.data && solResponse.data.price) {
             botState.prices.solana = {
-                price: parseFloat(solData.price),
-                dex: 'Jupiter',
+                price: parseFloat(solResponse.data.price),
+                dex: 'Binance',
                 timestamp: Date.now(),
                 lastRealUpdate: Date.now()
             };
             broadcast({ type: 'price', chain: 'solana', data: botState.prices.solana });
         }
     } catch (error) {
-        console.error('Error fetching SOL from Jupiter:', error.message);
+        console.error('Error fetching SOL from Binance:', error.message);
     }
 
     // 3. Pi Network from CoinGecko
