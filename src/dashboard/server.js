@@ -1,6 +1,84 @@
 import axios from 'axios';
+import express from 'express';
+import { WebSocketServer } from 'ws';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 
-// ... existing code ...
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+
+// State management with MOCK data for demonstration
+const botState = {
+    running: true,
+    agents: {
+        SOLANA_MONITOR: { status: 'running', lastUpdate: Date.now() },
+        ETHEREUM_MONITOR: { status: 'running', lastUpdate: Date.now() },
+        ARBITRAGE_DETECTOR: { status: 'running', lastUpdate: Date.now() },
+        TRADE_EXECUTOR: { status: 'running', lastUpdate: Date.now() },
+    },
+    prices: {
+        solana: {
+            price: 145.67,
+            dex: 'jupiter',
+            timestamp: Date.now(),
+        },
+        ethereum: {
+            price: 2345.89,
+            dex: 'uniswap-v3',
+            timestamp: Date.now(),
+        },
+        pi: {
+            price: 45.20,
+            dex: 'pi-network',
+            timestamp: Date.now(),
+        },
+    },
+    opportunities: [],
+    trades: [],
+    stats: {
+        uptime: 0,
+        totalOpportunities: 0,
+        totalTrades: 0,
+        totalProfit: 0,
+    },
+};
+
+// WebSocket server
+const wss = new WebSocketServer({ noServer: true });
+
+// Broadcast to all connected clients
+function broadcast(data) {
+    wss.clients.forEach((client) => {
+        if (client.readyState === 1) { // OPEN
+            client.send(JSON.stringify(data));
+        }
+    });
+}
+
+// WebSocket connection handler
+wss.on('connection', (ws) => {
+    console.log('📱 Dashboard client connected');
+
+    // Send current state immediately
+    ws.send(JSON.stringify({
+        type: 'state',
+        data: botState,
+    }));
+
+    ws.on('close', () => {
+        console.log('📱 Dashboard client disconnected');
+    });
+});
 
 // Simulate price updates for demonstration
 function simulatePriceUpdates() {
