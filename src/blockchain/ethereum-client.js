@@ -41,15 +41,15 @@ class EthereumClient {
             this.provider = new ethers.JsonRpcProvider(config.ethereum.rpcUrl);
 
             // Initialize wallet if private key is provided
-            if (config.ethereum.privateKey && !config.dryRun) {
+            if (config.ethereum.privateKey) {
                 try {
                     this.wallet = new ethers.Wallet(config.ethereum.privateKey, this.provider);
-                    logInfo('ETHEREUM', 'Wallet initialized', {
+                    logInfo('ETHEREUM', 'Wallet initialized (Read-Only/Active)', {
                         address: this.wallet.address,
                     });
                 } catch (error) {
                     logError('ETHEREUM', error, { context: 'wallet initialization' });
-                    throw new Error('Invalid Ethereum private key format');
+                    // Don't throw, allow valid startup without wallet
                 }
             }
 

@@ -23,14 +23,14 @@ class SolanaClient {
             this.connection = new Connection(config.solana.rpcUrl, 'confirmed');
 
             // Initialize wallet if private key is provided
-            if (config.solana.privateKey && !config.dryRun) {
+            if (config.solana.privateKey) {
                 try {
                     const secretKey = bs58.decode(config.solana.privateKey);
                     this.wallet = Keypair.fromSecretKey(secretKey);
-                    logInfo('SOLANA', 'Wallet initialized');
+                    logInfo('SOLANA', 'Wallet initialized (Read-Only/Active)');
                 } catch (error) {
                     logError('SOLANA', error, { context: 'wallet initialization' });
-                    throw new Error('Invalid Solana private key format');
+                    // Don't crash entire bot if key is bad, just log
                 }
             }
 
