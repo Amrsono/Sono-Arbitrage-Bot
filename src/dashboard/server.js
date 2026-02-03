@@ -5,6 +5,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { SonoArbitrageBot } from '../main.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,16 +33,9 @@ const botState = {
             dex: 'Binance',
             timestamp: Date.now(),
         },
-        ethereum: {
-            price: 2345.89,
-            dex: 'uniswap-v3',
-            timestamp: Date.now(),
-        },
-        pi: {
-            price: 0.159, // Updated to match real market IOU price
-            dex: 'pi-network',
-            timestamp: Date.now(),
-        },
+        solana: { price: 103.00, dex: 'Binance', timestamp: Date.now() },
+        ethereum: { price: 2345.89, dex: 'Binance', timestamp: Date.now() },
+        pi: { price: 0.159, dex: 'CoinGecko (IOU)', timestamp: Date.now() },
     },
     opportunities: [],
     trades: [],
@@ -80,154 +74,89 @@ wss.on('connection', (ws) => {
     });
 });
 
-// Simulate price updates for demonstration
-function simulatePriceUpdates() {
-    setInterval(() => {
-        // Solana price - PRIORITIZE REAL DATA
-        const timeSinceLastSolUpdate = Date.now() - (botState.prices.solana.lastRealUpdate || 0);
-        if (timeSinceLastSolUpdate > 70000) {
-            const solVariation = (Math.random() - 0.5) * 2; // ±1
-            botState.prices.solana.price += solVariation;
-            botState.prices.solana.timestamp = Date.now();
+// Initialize Real Bot
+const bot = new SonoArbitrageBot();
+let piPriceInterval;
 
-            broadcast({
-                type: 'price',
-                chain: 'solana',
-                data: botState.prices.solana,
-            });
+// API Routes for Bot Control
+app.post('/api/bot/pause', (req, res) => {
+    bot.pauseTrading();
+    botState.isPaused = true;
+    broadcast({ type: 'state', data: botState });
+    console.log('⏸️ Trading Paused via Dashboard');
+    res.json({ success: true, message: 'Trading paused' });
+});
+
+app.post('/api/bot/resume', (req, res) => {
+    bot.resumeTrading();
+    botState.isPaused = false;
+    broadcast({ type: 'state', data: botState });
+    console.log('▶️ Trading Resumed via Dashboard');
+    res.json({ success: true, message: 'Trading resumed' });
+});
+
+app.get('/api/bot/status', (req, res) => {
+    res.json({
+        running: botState.running,
+        isPaused: botState.isPaused,
+        stats: botState.stats
+    });
+});
+
+// Sync Bot Events to Dashboard State
+function syncBotEvents() {
+    // Listen for price updates
+    const solMonitor = bot.agents.solanaMonitor;
+    const ethMonitor = bot.agents.ethereumMonitor;
+    const arbDetector = bot.agents.arbitrageDetector;
+    const tradeExecutor = bot.agents.tradeExecutor;
+
+    // Solana Price
+    solMonitor.on('price:update', (data) => {
+        botState.prices.solana = {
+            price: data.price,
+            dex: 'Binance',
+            timestamp: Date.now()
+        };
+        broadcast({ type: 'price', chain: 'solana', data: botState.prices.solana });
+    });
+
+    // Ethereum Price
+    ethMonitor.on('price:update', (data) => {
+        botState.prices.ethereum = {
+            price: data.price,
+            dex: 'Binance',
+            timestamp: Date.now()
+        };
+        broadcast({ type: 'price', chain: 'ethereum', data: botState.prices.ethereum });
+    });
+
+    // Opportunities
+    arbDetector.on('arbitrage:opportunity', (opp) => {
+        // Add trade link metadata 
+        opp.tradeLink = opp.buyChain === 'solana' ? 'https://phantom.app/' : 'https://www.binance.com/en/trade/ETH_USDT';
+        opp.platformName = opp.buyChain === 'solana' ? 'Phantom' : 'Binance';
+
+        botState.opportunities.unshift(opp);
+        botState.opportunities = botState.opportunities.slice(0, 50);
+        botState.stats.totalOpportunities++;
+        broadcast({ type: 'opportunity', data: opp });
+    });
+
+    // Trades
+    tradeExecutor.on('trade:complete', (trade) => {
+        botState.trades.unshift(trade);
+        botState.trades = botState.trades.slice(0, 50);
+        botState.stats.totalTrades++;
+        if (trade.success) {
+            botState.stats.totalProfit += (trade.result.netProfit || 0);
         }
-
-        // Ethereum price - PRIORITIZE REAL DATA
-        const timeSinceLastEthUpdate = Date.now() - (botState.prices.ethereum.lastRealUpdate || 0);
-        if (timeSinceLastEthUpdate > 70000) {
-            const ethVariation = (Math.random() - 0.5) * 20; // ±10
-            botState.prices.ethereum.price += ethVariation;
-            botState.prices.ethereum.timestamp = Date.now();
-
-            broadcast({
-                type: 'price',
-                chain: 'ethereum',
-                data: botState.prices.ethereum,
-            });
-        }
-
-        // Pi Network price - PRIORITIZE REAL DATA
-        const timeSinceLastPiUpdate = Date.now() - (botState.prices.pi.lastRealUpdate || 0);
-        if (timeSinceLastPiUpdate > 70000) {
-            // Smaller variation for the smaller price
-            const piVariation = (Math.random() - 0.5) * 0.005;
-            botState.prices.pi.price = Math.max(0.01, botState.prices.pi.price + piVariation);
-            botState.prices.pi.timestamp = Date.now();
-
-            broadcast({
-                type: 'price',
-                chain: 'pi',
-                data: botState.prices.pi,
-            });
-        }
-
-        // Occasionally detect an "opportunity"
-        if (Math.random() > 0.6) { // 40% chance each cycle
-            // Pick random pair
-            const chains = ['solana', 'ethereum', 'pi'];
-            const buyChain = chains[Math.floor(Math.random() * chains.length)];
-            let sellChain = chains[Math.floor(Math.random() * chains.length)];
-
-            while (sellChain === buyChain) {
-                sellChain = chains[Math.floor(Math.random() * chains.length)];
-            }
-
-            const buyPrice = botState.prices[buyChain].price;
-            const sellPrice = botState.prices[sellChain].price;
-
-            // Normalize for demo (assume cross-chain arbitrage via bridge/wrapper)
-            // Real logic would be complex. Here we just fake a profitable spread
-
-            const spread = Math.random() * (buyPrice * 0.05);
-            const profitPct = (spread / buyPrice) * 100;
-
-            if (profitPct > 0.5) {
-                botState.stats.totalOpportunities++;
-
-                let tradeLink = '#';
-                let platformName = 'Exchange';
-
-                if (buyChain === 'ethereum') {
-                    tradeLink = 'https://www.binance.com/en/trade/ETH_USDT';
-                    platformName = 'Binance';
-                } else if (buyChain === 'solana') {
-                    tradeLink = 'https://phantom.app/';
-                    platformName = 'Phantom';
-                } else if (buyChain === 'pi') {
-                    tradeLink = 'https://bridge.pimaster.net/'; // Example Pi Bridge link
-                    platformName = 'Pi Bridge';
-                }
-
-                const opportunity = {
-                    buyChain: buyChain,
-                    sellChain: sellChain,
-                    buyPrice: buyPrice,
-                    sellPrice: buyPrice + spread, // Simulated sell price
-                    profitPercentage: profitPct,
-                    timestamp: Date.now(),
-                    tradeLink: tradeLink,
-                    platformName: platformName
-                };
-
-                botState.opportunities.unshift(opportunity);
-                botState.opportunities = botState.opportunities.slice(0, 50);
-
-                broadcast({
-                    type: 'opportunity',
-                    data: opportunity,
-                });
-            }
-        }
-    }, 5000); // Every 5 seconds
+        broadcast({ type: 'trade', data: trade });
+    });
 }
 
-// Fetch real prices from separate sources
-async function fetchPrices() {
+async function fetchPiPrice() {
     const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
-
-    // 1. Ethereum from Binance
-    try {
-        const ethResponse = await axios.get('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT', {
-            headers: { 'User-Agent': userAgent }
-        });
-
-        if (ethResponse.data && ethResponse.data.price) {
-            botState.prices.ethereum = {
-                price: parseFloat(ethResponse.data.price),
-                dex: 'Binance',
-                timestamp: Date.now(),
-                lastRealUpdate: Date.now()
-            };
-            broadcast({ type: 'price', chain: 'ethereum', data: botState.prices.ethereum });
-        }
-    } catch (error) {
-        console.error('Error fetching ETH from Binance:', error.message);
-    }
-
-    // 2. Solana from Binance
-    try {
-        const solResponse = await axios.get('https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT', {
-            headers: { 'User-Agent': userAgent }
-        });
-
-        if (solResponse.data && solResponse.data.price) {
-            botState.prices.solana = {
-                price: parseFloat(solResponse.data.price),
-                dex: 'Binance',
-                timestamp: Date.now(),
-                lastRealUpdate: Date.now()
-            };
-            broadcast({ type: 'price', chain: 'solana', data: botState.prices.solana });
-        }
-    } catch (error) {
-        console.error('Error fetching SOL from Binance:', error.message);
-    }
-
     // 3. Pi Network from CoinGecko
     try {
         const piResponse = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=pi-network&vs_currencies=usd', {
@@ -246,13 +175,26 @@ async function fetchPrices() {
     } catch (error) {
         console.error('Error fetching Pi from CoinGecko:', error.message);
     }
-
-    console.log('💰 Fetched real prices from separate sources');
 }
 
-// Start fetching real prices
-fetchPrices();
-setInterval(fetchPrices, 60000); // Every 60 seconds
+// Start everything
+async function startServer() {
+    try {
+        await bot.start();
+        syncBotEvents();
+
+        // Pi fetching
+        setInterval(fetchPiPrice, 60000);
+        fetchPiPrice();
+
+        app.listen(PORT, () => {
+            console.log(`🚀 Dashboard Server running on http://localhost:${PORT}`);
+            console.log(`🤖 Trading Bot is ACTIVE (Paused: ${botState.isPaused})`);
+        });
+    } catch (err) {
+        console.error('Failed to start bot/server:', err);
+    }
+}
 
 // Watch log file for real-time updates (if available)
 let logWatcher;

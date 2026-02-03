@@ -1,6 +1,7 @@
 import BaseAgent from '../core/base-agent.js';
 import SolanaClient from '../blockchain/solana-client.js';
 import EthereumClient from '../blockchain/ethereum-client.js';
+import BinanceClient from '../exchanges/binance-client.js';
 import config from '../config/config.js';
 import { logInfo, logError, logTrade, logWarn } from '../utils/logger.js';
 import { validateBalance, validateGasCosts } from '../utils/validator.js';
@@ -15,6 +16,7 @@ class TradeExecutorAgent extends BaseAgent {
         this.ethereumClient = new EthereumClient();
         this.executingTrade = false;
         this.tradeHistory = [];
+        this.isPaused = false; // Emergency stop state
     }
 
     /**
@@ -54,9 +56,31 @@ class TradeExecutorAgent extends BaseAgent {
     }
 
     /**
+     * Pause trading (Emergency Stop)
+     */
+    pause() {
+        this.isPaused = true;
+        logWarn(this.name, '🛑 TRADING PAUSED BY USER');
+    }
+
+    /**
+     * Resume trading
+     */
+    resume() {
+        this.isPaused = false;
+        logInfo(this.name, '▶️ TRADING RESUMED');
+    }
+
+    /**
      * Handle incoming arbitrage opportunity
      */
     async handleArbitrageOpportunity(opportunity) {
+        // Check for emergency stop
+        if (this.isPaused) {
+            logWarn(this.name, '⚠️ Trade skipped: Bot is paused by user');
+            return;
+        }
+
         // Prevent concurrent trade execution
         if (this.executingTrade) {
             logInfo(this.name, 'Trade already in progress, skipping opportunity');
@@ -249,7 +273,7 @@ class TradeExecutorAgent extends BaseAgent {
         const tokenAmount = tradeSize / buyPrice;
 
         if (buyChain === 'solana') {
-            // Buy on Solana
+            // Buy on Solana (Phantom/Jupiter)
             const result = await this.solanaClient.executeSwap(
                 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC
                 config.solana.tokenMint || 'So11111111111111111111111111111111111111112', // G token or SOL
@@ -258,14 +282,14 @@ class TradeExecutorAgent extends BaseAgent {
             );
             return result;
         } else {
-            // Buy on Ethereum
-            const result = await this.ethereumClient.executeSwap(
-                '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
-                config.ethereum.tokenAddress || '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // G token or WETH
-                BigInt(Math.floor(tradeSize * 1e6)), // USDC has 6 decimals
-                config.trading.maxSlippagePercentage
-            );
-            return result;
+            // Buy on Binance (Ethereum)
+            const result = await BinanceClient.executeSpotOrder('ETHUSDT', 'BUY', tokenAmount);
+            return {
+                base: 'ETH',
+                quote: 'USDT',
+                amount: tokenAmount,
+                ...result
+            };
         }
     }
 
@@ -279,7 +303,7 @@ class TradeExecutorAgent extends BaseAgent {
         const tokenAmount = tradeSize / buyPrice;
 
         if (sellChain === 'solana') {
-            // Sell on Solana
+            // Sell on Solana (Phantom/Jupiter)
             const result = await this.solanaClient.executeSwap(
                 config.solana.tokenMint || 'So11111111111111111111111111111111111111112', // G token or SOL
                 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC
@@ -288,14 +312,14 @@ class TradeExecutorAgent extends BaseAgent {
             );
             return result;
         } else {
-            // Sell on Ethereum
-            const result = await this.ethereumClient.executeSwap(
-                config.ethereum.tokenAddress || '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // G token or WETH
-                '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
-                BigInt(Math.floor(tokenAmount * 1e18)), // Assuming 18 decimals for token
-                config.trading.maxSlippagePercentage
-            );
-            return result;
+            // Sell on Binance (Ethereum)
+            const result = await BinanceClient.executeSpotOrder('ETHUSDT', 'SELL', tokenAmount);
+            return {
+                base: 'ETH',
+                quote: 'USDT',
+                amount: tokenAmount,
+                ...result
+            };
         }
     }
 

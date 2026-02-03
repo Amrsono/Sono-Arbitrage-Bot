@@ -13,7 +13,7 @@ const config = {
     walletAddress: process.env.SOLANA_WALLET_ADDRESS,
     tokenMint: process.env.G_TOKEN_SOLANA,
     priorityFee: parseInt(process.env.SOLANA_PRIORITY_FEE_LAMPORTS || '5000'),
-    
+
     // DEX configurations
     dexes: {
       jupiter: {
@@ -39,7 +39,7 @@ const config = {
     tokenAddress: process.env.G_TOKEN_ETHEREUM,
     chainId: 1, // Mainnet
     maxGasPrice: process.env.MAX_GAS_PRICE_GWEI || 100,
-    
+
     // DEX configurations
     dexes: {
       uniswapV3: {
@@ -53,6 +53,12 @@ const config = {
         routerAddress: '0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F',
       },
     },
+  },
+
+  // Binance (CEX) configuration
+  binance: {
+    apiKey: process.env.BINANCE_API_KEY,
+    privateKeyPath: process.env.BINANCE_PRIVATE_KEY_PATH,
   },
 
   // Trading parameters

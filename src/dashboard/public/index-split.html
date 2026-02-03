@@ -584,6 +584,38 @@
         let ws;
         let startTime = Date.now();
 
+        // Toggle Trading
+        async function toggleTrading() {
+            const btn = document.getElementById('toggleTradingBtn');
+            const isPaused = btn.innerText.includes('Resume');
+            const endpoint = isPaused ? '/api/bot/resume' : '/api/bot/pause';
+
+            try {
+                const response = await fetch(endpoint, { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    // Optimistic UI update
+                    updateButtonState(!isPaused);
+                }
+            } catch (error) {
+                console.error('Failed to toggle trading:', error);
+                alert('Failed to toggle trading');
+            }
+        }
+
+        function updateButtonState(isPaused) {
+            const btn = document.getElementById('toggleTradingBtn');
+            if (isPaused) {
+                btn.innerText = 'Resume Trading';
+                btn.className = 'btn btn-success'; // Green to resume
+                btn.style.background = '#10b981';
+            } else {
+                btn.innerText = 'Stop Trading';
+                btn.className = 'btn btn-danger'; // Red to stop
+                btn.style.background = '#ef4444';
+            }
+        }
+
         // WebSocket connection
         function connect() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -613,6 +645,10 @@
             switch (type) {
                 case 'state':
                     updateArbitrageState(data);
+                    // Update pause state
+                    if (data.isPaused !== undefined) {
+                        updateButtonState(data.isPaused);
+                    }
                     break;
                 case 'price':
                     updatePrice(chain, data);
