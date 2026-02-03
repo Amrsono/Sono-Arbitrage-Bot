@@ -149,6 +149,20 @@ function simulatePriceUpdates() {
             if (profitPct > 0.5) {
                 botState.stats.totalOpportunities++;
 
+                let tradeLink = '#';
+                let platformName = 'Exchange';
+
+                if (buyChain === 'ethereum') {
+                    tradeLink = 'https://www.binance.com/en/trade/ETH_USDT';
+                    platformName = 'Binance';
+                } else if (buyChain === 'solana') {
+                    tradeLink = 'https://phantom.app/';
+                    platformName = 'Phantom';
+                } else if (buyChain === 'pi') {
+                    tradeLink = 'https://bridge.pimaster.net/'; // Example Pi Bridge link
+                    platformName = 'Pi Bridge';
+                }
+
                 const opportunity = {
                     buyChain: buyChain,
                     sellChain: sellChain,
@@ -156,6 +170,8 @@ function simulatePriceUpdates() {
                     sellPrice: buyPrice + spread, // Simulated sell price
                     profitPercentage: profitPct,
                     timestamp: Date.now(),
+                    tradeLink: tradeLink,
+                    platformName: platformName
                 };
 
                 botState.opportunities.unshift(opportunity);

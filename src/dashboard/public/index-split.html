@@ -684,7 +684,22 @@
                     → <strong>Sell ${getSymbol(opp.buyChain)} on ${opp.sellChain.toUpperCase()}</strong> @ $${opp.sellPrice.toFixed(2)}
                     <span class="sentiment-badge sentiment-positive">+${opp.profitPercentage.toFixed(2)}%</span>
                 </div>
-                <div class="timestamp">${new Date(opp.timestamp).toLocaleString()}</div>
+                <div style="margin-top: 5px;">
+                    <a href="${opp.tradeLink || '#'}" target="_blank" style="
+                        display: inline-block;
+                        padding: 4px 12px;
+                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 4px;
+                        font-size: 0.75rem;
+                        font-weight: bold;
+                        transition: transform 0.2s;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        Buy on ${opp.platformName || 'Exchange'}
+                    </a>
+                    <span class="timestamp" style="margin-left: 8px;">${new Date(opp.timestamp).toLocaleTimeString()}</span>
+                </div>
             `;
 
             list.insertBefore(item, list.firstChild);
