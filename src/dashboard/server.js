@@ -170,57 +170,69 @@ function simulatePriceUpdates() {
     }, 5000); // Every 5 seconds
 }
 
-// Fetch real prices from CoinGecko (Pi, ETH, SOL)
+// Fetch real prices from separate sources
 async function fetchPrices() {
+    const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+
+    // 1. Ethereum from Binance
     try {
-        // Fetch Pi, Ethereum, Solana prices
-        const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=pi-network,ethereum,solana&vs_currencies=usd', {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
+        const ethResponse = await axios.get('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT', {
+            headers: { 'User-Agent': userAgent }
         });
 
-        if (response.data) {
-            const now = Date.now();
-
-            // Update Pi
-            if (response.data['pi-network']?.usd) {
-                botState.prices.pi = {
-                    price: response.data['pi-network'].usd,
-                    dex: 'CoinGecko (IOU)',
-                    timestamp: now,
-                    lastRealUpdate: now
-                };
-                broadcast({ type: 'price', chain: 'pi', data: botState.prices.pi });
-            }
-
-            // Update Ethereum
-            if (response.data['ethereum']?.usd) {
-                botState.prices.ethereum = {
-                    price: response.data['ethereum'].usd,
-                    dex: 'CoinGecko',
-                    timestamp: now,
-                    lastRealUpdate: now
-                };
-                broadcast({ type: 'price', chain: 'ethereum', data: botState.prices.ethereum });
-            }
-
-            // Update Solana
-            if (response.data['solana']?.usd) {
-                botState.prices.solana = {
-                    price: response.data['solana'].usd,
-                    dex: 'CoinGecko',
-                    timestamp: now,
-                    lastRealUpdate: now
-                };
-                broadcast({ type: 'price', chain: 'solana', data: botState.prices.solana });
-            }
-
-            console.log('💰 Fetched real prices from CoinGecko');
+        if (ethResponse.data && ethResponse.data.price) {
+            botState.prices.ethereum = {
+                price: parseFloat(ethResponse.data.price),
+                dex: 'Binance',
+                timestamp: Date.now(),
+                lastRealUpdate: Date.now()
+            };
+            broadcast({ type: 'price', chain: 'ethereum', data: botState.prices.ethereum });
         }
     } catch (error) {
-        console.error('Error fetching prices:', error.message);
+        console.error('Error fetching ETH from Binance:', error.message);
     }
+
+    // 2. Solana from Jupiter
+    try {
+        const solResponse = await axios.get('https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112', {
+            headers: { 'User-Agent': userAgent }
+        });
+
+        if (solResponse.data && solResponse.data.data && solResponse.data.data['So11111111111111111111111111111111111111112']) {
+            const solData = solResponse.data.data['So11111111111111111111111111111111111111112'];
+            botState.prices.solana = {
+                price: parseFloat(solData.price),
+                dex: 'Jupiter',
+                timestamp: Date.now(),
+                lastRealUpdate: Date.now()
+            };
+            broadcast({ type: 'price', chain: 'solana', data: botState.prices.solana });
+        }
+    } catch (error) {
+        console.error('Error fetching SOL from Jupiter:', error.message);
+    }
+
+    // 3. Pi Network from CoinGecko
+    try {
+        const piResponse = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=pi-network&vs_currencies=usd', {
+            headers: { 'User-Agent': userAgent }
+        });
+
+        if (piResponse.data && piResponse.data['pi-network']?.usd) {
+            botState.prices.pi = {
+                price: piResponse.data['pi-network'].usd,
+                dex: 'CoinGecko (IOU)',
+                timestamp: Date.now(),
+                lastRealUpdate: Date.now()
+            };
+            broadcast({ type: 'price', chain: 'pi', data: botState.prices.pi });
+        }
+    } catch (error) {
+        console.error('Error fetching Pi from CoinGecko:', error.message);
+    }
+
+    console.log('💰 Fetched real prices from separate sources');
 }
 
 // Start fetching real prices
