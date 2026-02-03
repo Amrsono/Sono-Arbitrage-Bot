@@ -24,21 +24,25 @@ class SolanaClient {
 
             // Initialize wallet if private key is provided
             // Initialize wallet if private key is provided
-            if (config.solana.privateKey) {
+            if (config.solana.privateKey && !config.solana.privateKey.includes('DRY_RUN_MODE')) {
                 try {
                     const secretKey = bs58.decode(config.solana.privateKey);
                     this.wallet = Keypair.fromSecretKey(secretKey);
                     logInfo('SOLANA', 'Wallet initialized (Active Trading)');
                 } catch (error) {
-                    logError('SOLANA', error, { context: 'wallet initialization' });
+                    logError('SOLANA', new Error(`Invalid Private Key: ${error.message}`), { context: 'wallet initialization' });
                 }
-            } else if (config.solana.walletAddress) {
-                try {
-                    // Read-only mode
-                    this.publicKey = new PublicKey(config.solana.walletAddress);
-                    logInfo('SOLANA', 'Wallet initialized (Read-Only Mode)');
-                } catch (error) {
-                    logError('SOLANA', error, { context: 'read-only wallet initialization' });
+            } else {
+                if (config.solana.walletAddress && !config.solana.walletAddress.includes('11111111111111111111111111111111')) {
+                    try {
+                        // Read-only mode
+                        this.publicKey = new PublicKey(config.solana.walletAddress);
+                        logInfo('SOLANA', 'Wallet initialized (Read-Only Mode)');
+                    } catch (error) {
+                        logError('SOLANA', error, { context: 'read-only wallet initialization' });
+                    }
+                } else {
+                    logInfo('SOLANA', 'No wallet configured - Read-Only pricing mode only');
                 }
             }
 
@@ -129,9 +133,11 @@ class SolanaClient {
     async getBalance(tokenMint = null) {
         try {
             const targetKey = this.wallet ? this.wallet.publicKey : this.publicKey;
-
             if (!targetKey) {
-                throw new Error('Wallet not initialized (No Private Key or Public Address)');
+                if (!config.dryRun) {
+                    throw new Error('SOLANA WALLET NOT INITIALIZED: A real Private Key or Wallet Address must be provided in .env when DRY_RUN=false.');
+                }
+                return 0; // Return 0 for dry-run if no public key
             }
 
             if (!tokenMint) {

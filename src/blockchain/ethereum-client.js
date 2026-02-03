@@ -42,7 +42,7 @@ class EthereumClient {
 
             // Initialize wallet if private key is provided
             // Initialize wallet if private key is provided
-            if (config.ethereum.privateKey) {
+            if (config.ethereum.privateKey && !config.ethereum.privateKey.includes('DRY_RUN_MODE')) {
                 try {
                     this.wallet = new ethers.Wallet(config.ethereum.privateKey, this.provider);
                     logInfo('ETHEREUM', 'Wallet initialized (Active Trading)', {
@@ -53,12 +53,16 @@ class EthereumClient {
                     logError('ETHEREUM', new Error(`Invalid Private Key - Falling back to Read-Only Mode: ${error.message}`), { context: 'wallet initialization' });
                     this.wallet = null;
                 }
-            } else if (config.ethereum.walletAddress) {
-                // Read-only mode
-                this.walletAddress = config.ethereum.walletAddress;
-                logInfo('ETHEREUM', 'Wallet initialized (Read-Only Mode)', {
-                    address: this.walletAddress,
-                });
+            } else {
+                if (config.ethereum.walletAddress && !config.ethereum.walletAddress.includes('0000000000000000000000000000000000000000')) {
+                    // Read-only mode
+                    this.walletAddress = config.ethereum.walletAddress;
+                    logInfo('ETHEREUM', 'Wallet initialized (Read-Only Mode)', {
+                        address: this.walletAddress,
+                    });
+                } else {
+                    logInfo('ETHEREUM', 'No wallet configured - Read-Only pricing mode only');
+                }
             }
 
             // Test connection
@@ -105,8 +109,17 @@ class EthereumClient {
                 tokenOut = USDC;
             }
 
-            // Quote for 1 token (assuming 18 decimals, adjust if needed)
-            const amountIn = ethers.parseUnits('1', 18);
+            console.log('DEBUG [ETHEREUM_CLIENT]: getUniswapPrice called with tokenIn:', tokenIn, 'tokenOut:', tokenOut);
+
+            // CRITICAL FIX: USDT has 6 decimals, not 18!
+            // Detect token decimals based on address
+            const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+            const tokenInDecimals = (tokenIn.toLowerCase() === USDT_ADDRESS.toLowerCase()) ? 6 : 18;
+
+            console.log('DEBUG [ETHEREUM_CLIENT]: Using', tokenInDecimals, 'decimals for tokenIn');
+
+            // Quote for 1 token (with correct decimals)
+            const amountIn = ethers.parseUnits('1', tokenInDecimals);
 
             // Get quote from Uniswap V3 Quoter (static call)
             const quotedAmountOut = await this.quoter.quoteExactInputSingle.staticCall(
@@ -142,7 +155,10 @@ class EthereumClient {
             const targetAddress = this.wallet ? this.wallet.address : this.walletAddress;
 
             if (!targetAddress) {
-                throw new Error('Wallet not initialized (No Private Key or Public Address)');
+                if (!config.dryRun) {
+                    throw new Error('ETHEREUM WALLET NOT INITIALIZED: A real Private Key or Wallet Address must be provided in .env when DRY_RUN=false.');
+                }
+                return 0; // Return 0 for dry-run if no address
             }
 
             if (!tokenAddress) {

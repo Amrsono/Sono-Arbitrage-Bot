@@ -152,58 +152,13 @@ class TradeExecutorAgent extends BaseAgent {
             return;
         }
 
-        // Prevent concurrent trade execution
-        if (this.executingTrade) {
-            logInfo(this.name, 'Trade already in progress, skipping opportunity');
-            return;
-        }
-
-        this.executingTrade = true;
-
-        try {
-            logInfo(this.name, 'Processing arbitrage opportunity', {
-                buyChain: opportunity.buyChain,
-                sellChain: opportunity.sellChain,
-                profit: `${opportunity.profitPercentage.toFixed(2)}%`,
-            });
-
-            // Execute the arbitrage trade
-            const result = await this.executeArbitrageTrade(opportunity);
-
-            // Log trade result
-            logTrade({
-                ...opportunity,
-                ...result,
-                timestamp: Date.now(),
-            });
-
-            // Store in history
-            this.tradeHistory.push({
-                ...opportunity,
-                ...result,
-                executionTime: Date.now(),
-            });
-
-            // Emit trade completion event
-            this.emit('trade:complete', {
-                success: result.success,
-                opportunity,
-                result,
-            });
-
-        } catch (error) {
-            logError(this.name, error, { context: 'execute arbitrage' });
-            this.reportError(error, false);
-
-            // Emit trade failure event
-            this.emit('trade:complete', {
-                success: false,
-                opportunity,
-                error: error.message,
-            });
-        } finally {
-            this.executingTrade = false;
-        }
+        // AUTO-TRADING DISABLED: Manual Mode Only
+        // We log the opportunity so the user can see it, but we DO NOT execute.
+        logInfo(this.name, 'Arbitrage opportunity detected - WAITING FOR MANUAL TRIGGER', {
+            buyChain: opportunity.buyChain,
+            sellChain: opportunity.sellChain,
+            profit: `${opportunity.profitPercentage.toFixed(2)}%`,
+        });
     }
 
     /**

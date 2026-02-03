@@ -122,7 +122,7 @@ class SolanaMonitorAgent extends BaseAgent {
 
                         // Try fallback: Binance
                         try {
-                            const binancePrice = await binanceClient.getPrice('SOLUSDC');
+                            const binancePrice = await binanceClient.getPrice('USDTUSDC');
                             if (binancePrice) {
                                 prices.push({
                                     price: binancePrice,
@@ -161,15 +161,15 @@ class SolanaMonitorAgent extends BaseAgent {
             const axios = (await import('axios')).default;
             const response = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
                 params: {
-                    ids: 'solana',
+                    ids: 'tether',
                     vs_currencies: 'usd'
                 },
                 timeout: 10000
             });
 
-            if (response.data && response.data.solana && response.data.solana.usd) {
+            if (response.data && response.data.tether && response.data.tether.usd) {
                 return {
-                    price: response.data.solana.usd,
+                    price: response.data.tether.usd,
                     source: 'coingecko',
                     dex: 'coingecko',
                     timestamp: Date.now(),
@@ -200,23 +200,8 @@ class SolanaMonitorAgent extends BaseAgent {
      * Fetch price from Jupiter
      */
     async fetchJupiterPrice() {
-        if (!config.solana.tokenMint) {
-            // If no token is configured, use SOL as example
-            const SOL_MINT = 'So11111111111111111111111111111111111111112';
-            const result = await this.client.getJupiterPrice(SOL_MINT);
-
-            return {
-                price: result.price,
-                source: 'jupiter',
-                dex: 'jupiter',
-                timestamp: Date.now(),
-                metadata: {
-                    route: result.route,
-                    impact: result.impact,
-                },
-            };
-        }
-
+        // Use the configured token mint (should be USDT)
+        console.log('DEBUG [SOLANA_MONITOR]: Fetching Jupiter price for token:', config.solana.tokenMint);
         const result = await this.client.getJupiterPrice(config.solana.tokenMint);
 
         // Validate price

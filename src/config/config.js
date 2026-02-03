@@ -98,8 +98,12 @@ function validateConfig() {
 
   if (!config.dryRun) {
     // Validate critical fields only when not in dry-run mode
-    if (!config.solana.privateKey) errors.push('SOLANA_PRIVATE_KEY is required');
-    if (!config.ethereum.privateKey) errors.push('ETHEREUM_PRIVATE_KEY is required');
+    if (!config.solana.privateKey || config.solana.privateKey.includes('DRY_RUN_MODE')) {
+      errors.push('Valid SOLANA_PRIVATE_KEY is required for live trading');
+    }
+    if (!config.ethereum.privateKey || config.ethereum.privateKey.includes('DRY_RUN_MODE')) {
+      errors.push('Valid ETHEREUM_PRIVATE_KEY is required for live trading');
+    }
     if (!config.solana.tokenMint) errors.push('G_TOKEN_SOLANA is required');
     if (!config.ethereum.tokenAddress) errors.push('G_TOKEN_ETHEREUM is required');
   }
@@ -115,5 +119,7 @@ function validateConfig() {
 
 validateConfig();
 console.log('DEBUG: Config loaded, dryRun:', config.dryRun);
+console.log('DEBUG: Solana token mint:', config.solana.tokenMint);
+console.log('DEBUG: Ethereum token address:', config.ethereum.tokenAddress);
 
 export default config;

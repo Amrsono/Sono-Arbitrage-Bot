@@ -443,6 +443,130 @@
                 border-bottom: 2px solid rgba(255, 255, 255, 0.2);
             }
         }
+
+        /* Dropdown & Modal Styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+            margin-left: 15px;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background: rgba(16, 16, 28, 0.95);
+            min-width: 180px;
+            box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 10px;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            animation: fadeIn 0.2s;
+        }
+
+        .dropdown-content a {
+            color: white;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 0.9rem;
+            transition: 0.2s;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-content a:hover {
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            margin: 10% auto;
+            padding: 2px;
+            /* Border gradient hacks if needed, but using border property */
+            border: 1px solid #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+            width: 80%;
+            max-width: 800px;
+            border-radius: 15px;
+            position: relative;
+        }
+
+        .modal-inner {
+            background: rgba(16, 16, 28, 0.95);
+            padding: 25px;
+            border-radius: 14px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .close-modal:hover {
+            color: #00ffff;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+
+        .history-table th {
+            text-align: left;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #00ffff;
+            border-bottom: 2px solid rgba(0, 255, 255, 0.2);
+        }
+
+        .history-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .history-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0
+            }
+
+            to {
+                opacity: 1
+            }
+        }
     </style>
 </head>
 
@@ -455,7 +579,7 @@
         <div class="panel panel-left">
             <div class="section-header">
                 <h1>🤖 Sono Arbitrage Bot</h1>
-                <p class="subtitle">Cross-Chain DEX Monitoring</p>
+                <p class="subtitle">USDT Cross-Chain Arbitrage: Solana ↔ Ethereum</p>
                 <div>
                     <span id="bot-status" class="status-badge status-stopped">● STOPPED</span>
                     <span class="status-badge status-dry-run">🔒 DRY RUN</span>
@@ -464,21 +588,28 @@
                         onclick="toggleTrading()">
                         Stop Trading
                     </button>
+
+                    <!-- Account Controls Dropdown -->
+
                 </div>
             </div>
 
+            <script>
+                document.getElementById('dropdown-role').innerText = 'ID: ' + (localStorage.getItem('role') || 'Unknown').toUpperCase();
+            </script>
+
             <div class="grid">
                 <div class="card">
-                    <h2><span class="icon">⚡</span> Solana</h2>
-                    <div class="price-label">SOL Price</div>
+                    <h2><span class="icon">⚡</span> Solana Chain</h2>
+                    <div class="price-label">USDT Price on Solana</div>
                     <div class="price-display" id="sol-price">--</div>
                     <div class="price-label">Source: <span id="sol-source">Jupiter</span></div>
                     <div class="timestamp" id="sol-timestamp">Waiting...</div>
                 </div>
 
                 <div class="card">
-                    <h2><span class="icon">💎</span> Ethereum</h2>
-                    <div class="price-label">ETH Price</div>
+                    <h2><span class="icon">💎</span> Ethereum Chain</h2>
+                    <div class="price-label">USDT Price on Ethereum</div>
                     <div class="price-display" id="eth-price">--</div>
                     <div class="price-label">Source: <span id="eth-source">Uniswap V3</span></div>
                     <div class="timestamp" id="eth-timestamp">Waiting...</div>
@@ -555,6 +686,21 @@
                 </div>
             </div>
 
+            <!-- Account Controls Dropdown (Fixed Position - Top Right) -->
+            <div class="dropdown" style="position: fixed; top: 20px; right: 20px; z-index: 10000;">
+                <button class="status-badge"
+                    style="background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; cursor: pointer; color: #00ffff;">
+                    ⚙️ Account Controls ▾
+                </button>
+                <div class="dropdown-content">
+                    <a style="cursor: default; opacity: 0.6; font-size: 0.8rem;" id="dropdown-role">Role:
+                        ...</a>
+                    <a onclick="showOrderHistory()">📜 Order History</a>
+                    <a onclick="localStorage.removeItem('role'); window.location.href='/login.html'"
+                        style="color: #ef4444;">⏏️ Logout</a>
+                </div>
+            </div>
+
             <div class="grid">
                 <div class="card">
                     <h2><span class="icon">🔥</span> Trending</h2>
@@ -608,9 +754,85 @@
         <span>Connecting...</span>
     </div>
 
+    <!-- Order History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-inner">
+                <span class="close-modal" onclick="closeModal()">&times;</span>
+                <h2 style="color: #00ffff; font-family: 'Orbitron', sans-serif; margin-bottom: 20px;">📜 Order History
+                </h2>
+                <div id="history-content">
+                    Loading...
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // AUTH CHECK - IMMEDIATE
+        const userRole = localStorage.getItem('role');
+        if (!userRole) {
+            window.location.href = '/login.html';
+        }
+
         let ws;
         let startTime = Date.now();
+        let isTradingPaused = false;
+        let latestState = null; // Store state for modal access
+
+        // Modal Functions
+        function closeModal() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+
+        function showOrderHistory() {
+            const modal = document.getElementById('historyModal');
+            const content = document.getElementById('history-content');
+            modal.style.display = 'block';
+
+            if (!latestState || !latestState.trades || latestState.trades.length === 0) {
+                content.innerHTML = '<div style="padding: 20px; text-align: center; color: #aaa;">No trades executed in this session.</div>';
+                return;
+            }
+
+            let html = `
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Pair</th>
+                            <th>Side</th>
+                            <th>Amount</th>
+                            <th>Result</th>
+                            <th>Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            latestState.trades.forEach(trade => {
+                const date = new Date(trade.timestamp).toLocaleString();
+                const pair = `${trade.opportunity.buyChain.substring(0, 3).toUpperCase()} / ${trade.opportunity.sellChain.substring(0, 3).toUpperCase()}`;
+                const resultColor = trade.success ? '#10b981' : '#ef4444';
+                const profit = trade.result && trade.result.netProfit
+                    ? `+$${trade.result.netProfit.toFixed(2)}`
+                    : '--';
+
+                html += `
+                    <tr>
+                        <td>${date}</td>
+                        <td style="font-weight: bold;">${pair}</td>
+                        <td>ARBITRAGE</td>
+                        <td>$${trade.opportunity.tradeSize}</td>
+                        <td style="color: ${resultColor}">${trade.success ? 'SUCCESS' : 'FAILED'}</td>
+                        <td style="color: ${resultColor}; font-weight: bold;">${profit}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            content.innerHTML = html;
+        }
 
         // Toggle Trading
         function updateWallet(data) {
@@ -626,6 +848,11 @@
         }
 
         async function toggleTrading() {
+            if (userRole !== 'admin') {
+                alert('🚫 ACCESS DENIED: Administrator privileges required.');
+                return;
+            }
+
             const btn = document.getElementById('toggleTradingBtn');
             const isPaused = btn.innerText.includes('Resume');
             const endpoint = isPaused ? '/api/bot/resume' : '/api/bot/pause';
@@ -644,7 +871,32 @@
         }
 
         function updateButtonState(isPaused) {
+            isTradingPaused = isPaused; // Update global state
             const btn = document.getElementById('toggleTradingBtn');
+
+            // USER ROLE RESTRICTION
+            const isAdmin = userRole === 'admin';
+
+            // Update all existing "Grab Opportunity" buttons
+            const grabButtons = document.querySelectorAll('button[onclick^="grabOpportunity"]');
+            grabButtons.forEach(gBtn => {
+                // Disabled if: Paused OR Not Admin
+                const shouldDisable = isPaused || !isAdmin;
+                gBtn.disabled = shouldDisable;
+
+                if (shouldDisable) {
+                    gBtn.style.background = '#6b7280'; // Gray
+                    gBtn.style.cursor = 'not-allowed';
+                    gBtn.title = isAdmin ? "Resume trading to enable actions" : "Restricted: Administrator Access Required";
+                    gBtn.style.opacity = isAdmin ? '1' : '0.5'; // Extra dim for users
+                } else {
+                    gBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)'; // Green gradient
+                    gBtn.style.cursor = 'pointer';
+                    gBtn.title = "";
+                    gBtn.style.opacity = '1';
+                }
+            });
+
             if (isPaused) {
                 btn.innerText = 'Resume Trading';
                 btn.className = 'btn btn-success'; // Green to resume
@@ -653,6 +905,14 @@
                 btn.innerText = 'Stop Trading';
                 btn.className = 'btn btn-danger'; // Red to stop
                 btn.style.background = '#ef4444';
+            }
+
+            // Lock main button for users
+            if (!isAdmin) {
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+                btn.title = "Read-Only Mode";
+                // Remove click handler for safety or just rely on the toggleTrading check
             }
         }
 
@@ -762,6 +1022,7 @@
         }
 
         function updateArbitrageState(state) {
+            latestState = state; // Capture for history modal logic
             if (state.prices.solana) updatePrice('solana', state.prices.solana);
             if (state.prices.ethereum) updatePrice('ethereum', state.prices.ethereum);
             if (state.prices.pi) updatePrice('pi', state.prices.pi);
@@ -817,24 +1078,40 @@
             } else {
                 // Store opportunity data in a safe way for the button click
                 const oppString = encodeURIComponent(JSON.stringify(opp));
+
+                // USER ROLE LOGIC
+                const isAdmin = userRole === 'admin';
+                const shouldDisable = isTradingPaused || !isAdmin;
+
+                // Determine initial button state based on global pause AND role
+                // Opacity: Admin paused = 100% visible (just gray), User = 50% visible (dimmed)
+                const btnStyle = shouldDisable
+                    ? `background: #6b7280; cursor: not-allowed; opacity: ${isAdmin ? 1 : 0.5};`
+                    : "background: linear-gradient(135deg, #10b981 0%, #059669 100%); cursor: pointer;";
+
+                const disabledAttr = shouldDisable ? "disabled" : "";
+                const titleAttr = !isAdmin ? "title='Administrator Access Required'" : "";
+
                 actionHtml = `
-                    <button onclick="grabOpportunity('${oppString}')" style="
+                    <button onclick="grabOpportunity('${oppString}')" ${disabledAttr} ${titleAttr} style="
                         display: inline-block;
                         padding: 6px 16px;
-                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                        ${btnStyle}
                         color: white;
                         border: none;
-                        cursor: pointer;
                         border-radius: 6px;
                         font-size: 0.85rem;
                         font-weight: bold;
                         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
                         transition: all 0.2s;
-                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    " onmouseover="if(!this.disabled)this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                         Grab Opportunity 🚀
                     </button>
                 `;
             }
+
+            const profitUsd = (opp.profitUsd || 0).toFixed(2);
+            const description = `Buy on <b>${opp.buyChain.toUpperCase()}</b> at <b>$${opp.buyPrice.toFixed(4)}</b> and Sell on <b>${opp.sellChain.toUpperCase()}</b> at <b>$${opp.sellPrice.toFixed(4)}</b> for a projected profit of <b style="color: #10b981;">$${profitUsd}</b>.`;
 
             item.innerHTML = `
                 <div class="token-header">
@@ -843,14 +1120,17 @@
                         ${opp.skipped ? 'SKIPPED' : 'ACTIVE'}
                     </span>
                 </div>
+                <div style="margin: 8px 0; font-size: 0.85rem; color: #d1d5db; line-height: 1.4; font-style: italic;">
+                    ${description}
+                </div>
                 <div class="token-metrics">
                     <div class="metric">
                         <span>Buy</span>
-                        <span class="metric-value">$${opp.buyPrice.toFixed(2)}</span>
+                        <span class="metric-value">$${opp.buyPrice.toFixed(4)}</span>
                     </div>
                     <div class="metric">
                         <span>Sell</span>
-                        <span class="metric-value">$${opp.sellPrice.toFixed(2)}</span>
+                        <span class="metric-value">$${opp.sellPrice.toFixed(4)}</span>
                     </div>
                     <div class="metric">
                         <span>Profit</span>

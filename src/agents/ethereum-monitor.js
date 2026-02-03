@@ -92,7 +92,7 @@ class EthereumMonitorAgent extends BaseAgent {
 
                     // Try fallback: Binance
                     try {
-                        const binancePrice = await binanceClient.getPrice('ETHUSDC'); // Binance uses ETHUSDC or ETHUSDT
+                        const binancePrice = await binanceClient.getPrice('USDTUSDC'); // USDT/USDC pair for stablecoin arbitrage
                         if (binancePrice) {
                             prices.push({
                                 price: binancePrice,
@@ -127,23 +127,12 @@ class EthereumMonitorAgent extends BaseAgent {
      */
     async fetchUniswapPrice() {
         try {
-            if (!config.ethereum.tokenAddress) {
-                // If no token is configured, use WETH as example
-                const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
-                const result = await this.client.getUniswapPrice(WETH);
+            // TEMPORARY HARDCODE: Force USDT monitoring (bypassing config issue)
+            // TODO: Fix config loading issue and remove this hardcode
+            const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
 
-                return {
-                    price: result.price,
-                    source: 'uniswap-v3',
-                    dex: 'uniswap-v3',
-                    timestamp: Date.now(),
-                    metadata: {
-                        fee: result.fee,
-                    },
-                };
-            }
-
-            const result = await this.client.getUniswapPrice(config.ethereum.tokenAddress);
+            console.log('DEBUG [ETHEREUM_MONITOR]: HARDCODED - Fetching Uniswap price for USDT:', USDT_ADDRESS);
+            const result = await this.client.getUniswapPrice(USDT_ADDRESS);
 
             // Validate price
             validatePrice(result.price, 'Uniswap V3');

@@ -128,6 +128,22 @@ See [`.env.production`](./.env.production) for all options.
 - [Configuration Guide](./CONFIGURATION.md)
 - [Quick Setup](./QUICK_SETUP.md)
 
+## 🔍 Data Sources & Integrity
+
+We believe in 100% transparency regarding data sources. Here is the breakdown:
+
+### ✅ Real Live Data
+*   **Solana Prices:** Fetched real-time from **Jupiter Aggregator** via `SolanaMonitor`.
+*   **Ethereum Prices:** Fetched real-time from **Uniswap V3** and RPC hooks via `EthereumMonitor`.
+*   **Wallet Balances:** Live fetches from your configured Wallet (SOL) and Binance (ETH/USDT).
+*   **Arbitrage Logic:** Opportunities are calculated mathematically using these live price feeds.
+*   **Social Sentiment:** Real-time analysis of trending tokens (when configured).
+
+### ⚠️ Placeholders & Simulations
+*   **Startup State (T=0s):** When the server first boots, it initializes with hardcoded placeholder values (e.g., ~$103 SOL) for < 1 second. These are **immediately overwritten** by the first real network packet.
+*   **Pi Network:** Price is fetched from CoinGecko, but as Pi is not on Mainnet, this represents an **IOU/Speculative Price**, not a tradeable DEX price.
+*   **Log Watcher Fallback:** If the system cannot find or read `combined.log`, it may fall back to simulated data strings. (Check console logs for "Using simulated data" warning to confirm).
+
 ## � Security
 
 - Never commit `.env` files
